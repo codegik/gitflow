@@ -1,0 +1,17 @@
+/bin
+/build
+/target
+/.settings
+/.project
+/*.bak
+/.project
+/.classpath
+**/bin
+**/build
+**/target
+**/.settings
+**/.project
+**/*.bak
+**/.project
+**/.classpath
+
