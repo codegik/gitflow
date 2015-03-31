@@ -53,7 +53,7 @@ public class StartReleaseMojo extends AbstractMojo {
 
 		try {
 
-			getLog().info("Looking for develop");
+			getLog().info("Looking for d  evelop");
 			Ref develop = findBranch(DEVELOP);
 
 			if (develop == null) {
