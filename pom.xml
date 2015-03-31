@@ -3,8 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.codegik.gitflow</groupId>
 	<artifactId>gitflow</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
+
+	<scm>
+		<connection>https://codegik@bitbucket.org/codegik/gitflow.git</connection>
+		<developerConnection>https://codegik@bitbucket.org/codegik/gitflow.git</developerConnection>
+	</scm>
 
 	<build>
 		<plugins>
@@ -32,6 +37,43 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<pluginManagement>
+			<plugins>
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											org.apache.maven.plugins
+										</groupId>
+										<artifactId>
+											maven-plugin-plugin
+										</artifactId>
+										<versionRange>
+											[3.2,)
+										</versionRange>
+										<goals>
+											<goal>descriptor</goal>
+											<goal>helpmojo</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 	<dependencies>
@@ -47,6 +89,16 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.maven</groupId>
+			<artifactId>maven-project</artifactId>
+			<version>2.2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.maven.release</groupId>
+			<artifactId>maven-release-manager</artifactId>
+			<version>2.5.1</version>
+		</dependency>
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.8.2</version>
@@ -58,5 +110,5 @@
 			<version>2.2.0.201212191850-r</version>
 		</dependency>
 	</dependencies>
-	
+
 </project>
