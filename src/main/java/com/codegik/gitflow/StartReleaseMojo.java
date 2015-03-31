@@ -26,6 +26,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 	private String version;
 
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public void run() throws Exception {
 		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
@@ -60,6 +61,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 	}
 
 
+	@Override
 	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
@@ -68,7 +70,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
 			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
 		} catch (Exception e1) {;}
-		throw new MojoExecutionException("ERROR", e);
+		throw buildMojoException("ERROR", e);
 	}
 
 

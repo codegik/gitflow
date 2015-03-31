@@ -14,6 +14,9 @@ import org.eclipse.jgit.lib.Ref;
 
 
 public abstract class AbstractGitFlowMojo extends AbstractMojo {
+
+	public enum BranchType { feature, bugfix }
+
 	protected static final String MASTER = "master";
 	protected static final String DEVELOP = "develop";
 	protected static final String PREFIX_RELEASE = "release";
@@ -54,13 +57,27 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	protected Ref findBranch(String branch) throws Exception {
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
+			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", "")) ||
+				branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
 				return b;
 			}
 		}
 
 		return null;
 	}
+
+
+	protected MojoExecutionException buildMojoException(String errorMessage) {
+		getLog().error(errorMessage);
+		return new MojoExecutionException(errorMessage);
+	}
+
+
+	protected MojoExecutionException buildMojoException(String errorMessage, Exception e) {
+		getLog().error(errorMessage);
+		return new MojoExecutionException(errorMessage, e);
+	}
+
 
 	public MavenProject getProject() {
 		return project;
@@ -80,4 +97,5 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	public void setReleaseManager(ReleaseManager releaseManager) {
 		this.releaseManager = releaseManager;
 	}
+
 }
