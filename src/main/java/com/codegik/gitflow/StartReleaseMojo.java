@@ -1,20 +1,12 @@
 package com.codegik.gitflow;
 
-import java.io.File;
-
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.ReleaseManager;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
 
@@ -27,89 +19,56 @@ import edu.emory.mathcs.backport.java.util.Arrays;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-release", aggregator = true)
-public class StartReleaseMojo extends AbstractMojo {
-	private static final String DEVELOP = "develop";
-	private static final String PREFIX = "release";
-	private static final String SUFFIX = "-SNAPSHOT";
-	private static final String SEPARATOR = "/";
-	private Git git;
+public class StartReleaseMojo extends AbstractGitFlowMojo {
+	private String branchName;
 
     @Parameter( property = "version", required = true )
 	private String version;
 
-    @Component
-    private MavenProject project;
-
-    @Component
-    private ReleaseManager releaseManager;
-
-
 
 	@SuppressWarnings("unchecked")
-	public void execute() throws MojoExecutionException, MojoFailureException {
-		String branchName = PREFIX + SEPARATOR + version;
+	public void run() throws Exception {
+		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
+		setVersion(getVersion().split(".").length < 2 ? getVersion() + ".000" : getVersion());
 
-		version = version.split(".").length < 2 ? version + ".000" : version;
+		getLog().info("Looking for develop");
+		Ref develop = findBranch(DEVELOP);
 
+		if (develop == null) {
+			getLog().info("Develop does not exists, creating branch develop");
+			develop = getGit().checkout().setCreateBranch(true).setName(DEVELOP).call();
+		}
+
+		getLog().info("Creating branch " + getBranchName());
+		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
+
+		getLog().info("Updating pom version");
+		ReleaseDescriptor descriptor = new ReleaseDescriptor();
+		ReleaseEnvironment environment = new DefaultReleaseEnvironment();
+		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getVersion() + SUFFIX);
+		descriptor.setDefaultDevelopmentVersion(getVersion() + SUFFIX);
+		getReleaseManager().updateVersions(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
+
+		getLog().info("Commiting changed files");
+		getGit().add().addFilepattern(".").call();
+		getGit().commit().setMessage("[GitFlow::start-release] Create release branch " + getBranchName()).call();
+
+        getLog().info("Pushing commit");
+        getGit().push().call();
+
+        getLog().info("DONE");
+	}
+
+
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
-
-			getLog().info("Looking for d  evelop");
-			Ref develop = findBranch(DEVELOP);
-
-			if (develop == null) {
-				getLog().info("Develop does not exists, creating branch develop");
-				develop = getGit().checkout().setCreateBranch(true).setName(DEVELOP).call();
-			}
-
-			getLog().info("Creating branch " + branchName);
-			getGit().checkout().setCreateBranch(true).setName(branchName).call();
-
-			getLog().info("Updating pom version");
-			ReleaseDescriptor descriptor = new ReleaseDescriptor();
-			ReleaseEnvironment environment = new DefaultReleaseEnvironment();
-			descriptor.mapDevelopmentVersion(getProject().getArtifactId(), version + SUFFIX);
-			descriptor.setDefaultDevelopmentVersion(version + SUFFIX);
-			getReleaseManager().updateVersions(descriptor, environment, Arrays.asList(new MavenProject[]{project}));
-
-			getLog().info("Commiting changed files");
-			git.add().addFilepattern(".").call();
-            git.commit().setMessage("[GitFlow::start-release] Create release branch " + branchName).call();
-
-            getLog().info("Pushing commit");
-            git.push().call();
-
-            getLog().info("DONE");
-
-		} catch (Exception e) {
-			try {
-				getLog().error(e.getMessage());
-				getLog().info("Rollbacking all changes");
-				getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
-				getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
-				getGit().branchDelete().setForce(true).setBranchNames(branchName).call();
-			} catch (Exception e1) {;}
-			throw new MojoExecutionException("ERROR", e);
-		}
-	}
-
-
-	private Git getGit() throws Exception {
-		if (git == null) {
-			git = Git.open(new File("."));
-		}
-
-		return git;
-	}
-
-
-	private Ref findBranch(String branch) throws Exception {
-		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
+			getLog().error(e.getMessage());
+			getLog().info("Rolling back all changes");
+			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
+			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
+			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
+		} catch (Exception e1) {;}
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 
@@ -123,23 +82,13 @@ public class StartReleaseMojo extends AbstractMojo {
 	}
 
 
-	public MavenProject getProject() {
-		return project;
+	public String getBranchName() {
+		return branchName;
 	}
 
 
-	public void setProject(MavenProject project) {
-		this.project = project;
-	}
-
-
-	public ReleaseManager getReleaseManager() {
-		return releaseManager;
-	}
-
-
-	public void setReleaseManager(ReleaseManager releaseManager) {
-		this.releaseManager = releaseManager;
+	public void setBranchName(String branchName) {
+		this.branchName = branchName;
 	}
 
 }
