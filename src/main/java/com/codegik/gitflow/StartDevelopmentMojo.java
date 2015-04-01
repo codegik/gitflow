@@ -27,6 +27,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run() throws Exception {
+		validadeVersion(getVersion());
 		setBranchName(branchType.toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 
 		getLog().info("Checkout into " + PREFIX_RELEASE + SEPARATOR + getVersion());

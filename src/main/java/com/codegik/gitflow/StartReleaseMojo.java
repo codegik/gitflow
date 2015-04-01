@@ -29,8 +29,8 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void run() throws Exception {
+		validadeVersion(getVersion());
 		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
-		setVersion(getVersion().split(".").length < 2 ? getVersion() + ".000" : getVersion());
 
 		getLog().info("Looking for develop");
 		Ref develop = findBranch(DEVELOP);
@@ -90,4 +90,15 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		this.branchName = branchName;
 	}
 
+	public static void main(String[] args) {
+		String pattern = "[0-9]{1,}.[0-9]{1,}";
+
+		System.out.println("1.33233".matches(pattern));
+		System.out.println("1.332.33".matches(pattern));
+		System.out.println("1. 332.33".matches(pattern));
+		System.out.println("1333221.33233".matches(pattern));
+		System.out.println("1332.3".matches(pattern));
+		System.out.println(".3".matches(pattern));
+		System.out.println("0.3".matches(pattern));
+	}
 }

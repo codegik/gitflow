@@ -78,6 +78,15 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	}
 
 
+	protected void validadeVersion(String version) throws MojoExecutionException {
+		String pattern = "[0-9]{1,}.[0-9]{1,}";
+
+		if (version.matches(pattern)) {
+			throw buildMojoException("The version pattern is " + pattern + "  EX: 1.3");
+		}
+	}
+
+
 	protected MojoExecutionException buildMojoException(String errorMessage) {
 		getLog().error(errorMessage);
 		return new MojoExecutionException(errorMessage);
