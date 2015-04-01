@@ -47,8 +47,7 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("The merge has conflicts, please try resolve manually! [from " + releaseBranch + " to " + getBranchName() + "]");
 		}
 
-		getLog().info("Pushing merge");
-		getGit().push().call();
+		push("Pushing merge");
 
 		if (deleteBranchAfter) {
 			getLog().info("Deleting development branch " + getBranchName());
@@ -93,7 +92,6 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
 			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
-			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

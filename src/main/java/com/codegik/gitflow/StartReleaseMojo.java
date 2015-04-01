@@ -51,12 +51,9 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		getReleaseManager().updateVersions(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
 
 		getLog().info("Commiting changed files");
-		getGit().add().addFilepattern(".").call();
-		getGit().commit().setMessage("[GitFlow::start-release] Create release branch " + getBranchName()).call();
+		commit("[GitFlow::start-release] Create release branch " + getBranchName());
 
-        getLog().info("Pushing commit");
-        getGit().push().call();
-
+		push("Pushing commit");
         getLog().info("DONE");
 	}
 

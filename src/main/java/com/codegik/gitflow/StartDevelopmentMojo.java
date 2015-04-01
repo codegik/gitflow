@@ -35,9 +35,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 		getLog().info("Creating branch " + getBranchName());
 		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
 
-        getLog().info("Pushing commit");
-        getGit().push().call();
-
+		push("Pushing branch " + getBranchName());
         getLog().info("DONE");
 	}
 

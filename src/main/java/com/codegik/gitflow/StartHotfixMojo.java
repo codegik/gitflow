@@ -28,6 +28,7 @@ import org.eclipse.jgit.api.ResetCommand.ResetType;
  */
 @Mojo(name = "start-hotfix", aggregator = true)
 public class StartHotfixMojo extends AbstractGitFlowMojo {
+
 	@Parameter( property = "branchName", required = true )
 	private String branchName;
 
@@ -60,10 +61,9 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		writeFile(pom, projectVersionChanger.getPom().asStringBuilder());
 
 		getLog().info("Commiting changed files");
-		getGit().commit().setAll(true).setMessage("[GitFlow::start-release] Create release branch " + getBranchName()).call();
+		commit("[GitFlow::start-release] Create release branch " + getBranchName());
 
-        getLog().info("Pushing commit");
-        getGit().push().call();
+        push("Pushing commit");
 
         getLog().info("DONE");
 	}
@@ -74,8 +74,8 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rollbacking all changes");
-			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
-			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
+			getGit().reset().setMode(ResetType.HARD).setRef(MASTER).call();
+			getGit().checkout().setCreateBranch(false).setForce(true).setName(MASTER).call();
 			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
