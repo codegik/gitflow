@@ -1,13 +1,13 @@
 package com.codegik.gitflow;
 
-import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
@@ -23,6 +23,8 @@ import edu.emory.mathcs.backport.java.util.Arrays;
  */
 @Mojo(name = "finish-hotfix", aggregator = true)
 public class FinishHotfixMojo extends AbstractGitFlowMojo {
+	private static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
+	private String newTagName;
 
     @Parameter( property = "branchName", required = true )
     private String branchName;
@@ -43,12 +45,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		getReleaseManager().prepare(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
 		getReleaseManager().perform(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
 
-		/**
-		 * TODO
-		 * Testar com o comando describe
-		 */
-		List<Ref> tags 	= getGit().tagList().call();
-		Ref lastTag 	= tags.get(tags.size() - 1);
+		Ref lastTag 	= findTag(getGit().describe().call());
 		Ref hotfixRef 	= findBranch(getBranchName());
 
 		push("Pushing changes to " + getBranchName());
@@ -86,35 +83,11 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
 			getReleaseManager().rollback(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
-			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
-			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
+			getGit().reset().setMode(ResetType.HARD).setRef(MASTER).call();
+			getGit().checkout().setCreateBranch(false).setForce(true).setName(MASTER).call();
+			getGit().tagDelete().setTags(newTagName).call();
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
-	}
-
-
-	private ReleaseEnvironment buildDefaultReleaseEnvironment() throws Exception {
-		ReleaseEnvironment environment = new DefaultReleaseEnvironment();
-
-		environment.setLocalRepositoryDirectory(getGit().getRepository().getDirectory());
-
-		return environment;
-	}
-
-
-	private ReleaseDescriptor buildReleaseDescriptor() throws Exception {
-		ReleaseDescriptor descriptor = new ReleaseDescriptor();
-
-		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getProject().getVersion());
-		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
-		descriptor.setAutoVersionSubmodules(true);
-		descriptor.setInteractive(false);
-		descriptor.setUpdateWorkingCopyVersions(true);
-		descriptor.setWorkingDirectory(getGit().getRepository().getDirectory().getParent());
-		descriptor.setScmUsername(getUsername());
-		descriptor.setScmPassword(getPassword());
-
-		return descriptor;
 	}
 
 
@@ -125,6 +98,17 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 	public void setBranchName(String branchName) {
 		this.branchName = branchName;
+	}
+
+
+	private String extractVersionFromString(String tag) {
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(tag);
+
+        if (matcher.find()) {
+        	return matcher.group(0);
+        }
+
+        return null;
 	}
 
 }

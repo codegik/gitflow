@@ -1,24 +1,21 @@
 package com.codegik.gitflow;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.release.config.ReleaseDescriptor;
+import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.codehaus.mojo.versions.api.PomHelper;
 import org.codehaus.mojo.versions.change.ProjectVersionChanger;
 import org.codehaus.mojo.versions.change.VersionChange;
 import org.codehaus.mojo.versions.rewriting.ModifiedPomXMLEventReader;
-import org.codehaus.plexus.util.IOUtil;
-import org.codehaus.plexus.util.WriterFactory;
-import org.codehaus.stax2.XMLInputFactory2;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+
+import edu.emory.mathcs.backport.java.util.Arrays;
 
 
 /**
@@ -33,6 +30,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 	private String branchName;
 
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void run() throws Exception {
 		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
@@ -41,8 +39,14 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		getGit().reset().setMode(ResetType.HARD).setRef(MASTER).call();
 		getGit().checkout().setCreateBranch(false).setForce(true).setName(MASTER).call();
 
-		getLog().info("Creating branch " + getBranchName());
-		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
+		ReleaseDescriptor descriptor 	= buildReleaseDescriptor();
+		ReleaseEnvironment environment 	= buildDefaultReleaseEnvironment();
+
+		getReleaseManager().prepare(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
+
+//		getLog().info("Creating branch " + getBranchName());
+//		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
+
 
 		getLog().info("Updating pom version");
 		File pom 							= new File("pom.xml");
@@ -81,28 +85,6 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		throw buildMojoException("ERROR", e);
 	}
 
-
-	private final ModifiedPomXMLEventReader newModifiedPomXER(StringBuilder input) {
-		ModifiedPomXMLEventReader newPom = null;
-		try {
-			XMLInputFactory inputFactory = XMLInputFactory2.newInstance();
-			inputFactory.setProperty(XMLInputFactory2.P_PRESERVE_LOCATION, Boolean.TRUE);
-			newPom = new ModifiedPomXMLEventReader(input, inputFactory);
-		} catch (XMLStreamException e) {
-			getLog().error(e);
-		}
-		return newPom;
-	}
-
-
-	private void writeFile(File outFile, StringBuilder input) throws IOException {
-		Writer writer = WriterFactory.newXmlWriter(outFile);
-		try {
-			IOUtil.copy(input.toString(), writer);
-		} finally {
-			IOUtil.close(writer);
-		}
-	}
 
 	public String getBranchName() {
 		return branchName;
