@@ -1,21 +1,9 @@
 package com.codegik.gitflow;
 
-import java.io.File;
-
-import org.apache.maven.model.Model;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.codehaus.mojo.versions.api.PomHelper;
-import org.codehaus.mojo.versions.change.ProjectVersionChanger;
-import org.codehaus.mojo.versions.change.VersionChange;
-import org.codehaus.mojo.versions.rewriting.ModifiedPomXMLEventReader;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
-
-import edu.emory.mathcs.backport.java.util.Arrays;
 
 
 /**
@@ -30,42 +18,22 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 	private String branchName;
 
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void run() throws Exception {
+		if (!getGit().getRepository().getBranch().toLowerCase().equals(MASTER)) {
+			throw buildMojoException("You must be on master branch for execute this goal!");
+		}
+
 		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
 
-		getLog().info("Reseting to branch " + MASTER);
-		getGit().reset().setMode(ResetType.HARD).setRef(MASTER).call();
-		getGit().checkout().setCreateBranch(false).setForce(true).setName(MASTER).call();
-
-		ReleaseDescriptor descriptor 	= buildReleaseDescriptor();
-		ReleaseEnvironment environment 	= buildDefaultReleaseEnvironment();
-
-		getReleaseManager().prepare(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
-
-//		getLog().info("Creating branch " + getBranchName());
-//		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
-
+		getLog().info("Creating branch " + getBranchName());
+		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
 
 		getLog().info("Updating pom version");
-		File pom 							= new File("pom.xml");
-		ModifiedPomXMLEventReader newPom 	= newModifiedPomXER(PomHelper.readXmlFile(pom));
-		Model newPomModel 					= newPom.parse();
-		VersionChange versionChange 		= new VersionChange(
-			getProject().getGroupId(),
-			getProject().getArtifactId(),
-			newPomModel.getVersion(),
-			newPomModel.getVersion() + SUFFIX
-		);
-
-		ProjectVersionChanger projectVersionChanger = new ProjectVersionChanger(getProject().getModel(), newPom, getLog());
-		projectVersionChanger.apply(versionChange);
-
-		writeFile(pom, projectVersionChanger.getPom().asStringBuilder());
+		updatePomVersion(getProject().getVersion() + SUFFIX);
 
 		getLog().info("Commiting changed files");
-		commit("[GitFlow::start-release] Create release branch " + getBranchName());
+		commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());
 
         push("Pushing commit");
 

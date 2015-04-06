@@ -3,14 +3,10 @@ package com.codegik.gitflow;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
-
-import edu.emory.mathcs.backport.java.util.Arrays;
 
 
 /**
@@ -27,7 +23,6 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void run() throws Exception {
 		validadeVersion(getVersion());
 		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
@@ -44,11 +39,11 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
 
 		getLog().info("Updating pom version");
-		ReleaseDescriptor descriptor = new ReleaseDescriptor();
-		ReleaseEnvironment environment = new DefaultReleaseEnvironment();
-		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getVersion() + SUFFIX);
-		descriptor.setDefaultDevelopmentVersion(getVersion() + SUFFIX);
-		getReleaseManager().updateVersions(descriptor, environment, Arrays.asList(new MavenProject[]{getProject()}));
+		ReleaseDescriptor descriptor = buildReleaseDescriptor();
+		ReleaseEnvironment environment = buildDefaultReleaseEnvironment();
+		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getVersion() + SUFFIX_RELEASE);
+		descriptor.setDefaultDevelopmentVersion(getVersion() + SUFFIX_RELEASE);
+		getReleaseManager().updateVersions(descriptor, environment, buildMavenProjects());
 
 		getLog().info("Commiting changed files");
 		commit("[GitFlow::start-release] Create release branch " + getBranchName());

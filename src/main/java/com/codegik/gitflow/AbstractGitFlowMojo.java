@@ -3,10 +3,15 @@ package com.codegik.gitflow;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -17,6 +22,11 @@ import org.apache.maven.shared.release.ReleaseManager;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
+import org.codehaus.mojo.versions.api.PomHelper;
+import org.codehaus.mojo.versions.change.ProjectVersionChanger;
+import org.codehaus.mojo.versions.change.VersionChange;
+import org.codehaus.mojo.versions.change.VersionChanger;
+import org.codehaus.mojo.versions.change.VersionChangerFactory;
 import org.codehaus.mojo.versions.rewriting.ModifiedPomXMLEventReader;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
@@ -180,7 +190,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected ReleaseDescriptor buildReleaseDescriptor() throws Exception {
 		ReleaseDescriptor descriptor = new ReleaseDescriptor();
 
-		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getProject().getVersion());
 		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
 		descriptor.setAutoVersionSubmodules(true);
 		descriptor.setInteractive(false);
@@ -191,6 +200,95 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 		descriptor.setUpdateDependencies(true);
 
 		return descriptor;
+	}
+
+
+	@SuppressWarnings("unchecked")
+	protected List<MavenProject> buildMavenProjects() throws IOException {
+		List<MavenProject> projectList = new ArrayList<MavenProject>();
+		MavenProject rootProject = getProject();
+
+		projectList.add(rootProject);
+
+		List<MavenProject> submodules = (List<MavenProject>)rootProject.getCollectedProjects();
+
+		projectList.addAll(submodules);
+
+		return projectList;
+	}
+
+
+	@SuppressWarnings("rawtypes")
+	protected void updatePomVersion(String newVersion) throws Exception {
+		List<MavenProject> projects = buildMavenProjects();
+		List<VersionChange> changes = new ArrayList<VersionChange>();
+
+		for (MavenProject project : projects) {
+			Model model 						= PomHelper.getRawModel(project.getFile());
+			File pom 							= project.getFile();
+			ModifiedPomXMLEventReader newPom 	= newModifiedPomXER(PomHelper.readXmlFile(pom));
+
+            getLog().info("Processing " + PomHelper.getGroupId( model ) + ":" + PomHelper.getArtifactId( model ) );
+
+            VersionChangerFactory versionChangerFactory = new VersionChangerFactory();
+            versionChangerFactory.setPom(newPom);
+            versionChangerFactory.setLog(getLog());
+            versionChangerFactory.setModel(model);
+
+            VersionChanger changer = versionChangerFactory.newVersionChanger(true, true, true, true);
+
+			// Adiciona a alteracao principal do pom
+			changes.add(new VersionChange(
+				getProject().getGroupId(),
+				getProject().getArtifactId(),
+				PomHelper.getVersion(model),
+				newVersion
+			));
+
+			// Adiciona a alteracao do parent do pom
+			Map<String, Model> reactor = PomHelper.getReactorModels( project, getLog() );
+			Iterator j = PomHelper.getChildModels(reactor, PomHelper.getGroupId(model), PomHelper.getArtifactId(model)).entrySet().iterator();
+			while ( j.hasNext() ) {
+				Map.Entry target = (Map.Entry) j.next();
+				Model targetModel = (Model) target.getValue();
+				changes.add(new VersionChange(
+					PomHelper.getGroupId(targetModel),
+					PomHelper.getArtifactId(targetModel),
+                    PomHelper.getVersion(targetModel),
+                    newVersion
+				));
+			}
+
+			for (VersionChange change : changes) {
+				if (change.getOldVersion() != null) {
+					changer.apply(change);
+				}
+			}
+
+			writeFile(pom, versionChangerFactory.getPom().asStringBuilder());
+		}
+	}
+
+
+	protected void updatePomVersion2(String newVersion) throws Exception {
+		List<MavenProject> projects = buildMavenProjects();
+
+		for (MavenProject project : projects) {
+			File pom 							= project.getFile();
+			ModifiedPomXMLEventReader newPom 	= newModifiedPomXER(PomHelper.readXmlFile(pom));
+			Model newPomModel 					= newPom.parse();
+			VersionChange versionChange 		= new VersionChange(
+				getProject().getGroupId(),
+				getProject().getArtifactId(),
+				newPomModel.getVersion(),
+				newVersion
+			);
+
+			ProjectVersionChanger projectVersionChanger = new ProjectVersionChanger(project.getModel(), newPom, getLog());
+			projectVersionChanger.apply(versionChange);
+
+			writeFile(pom, projectVersionChanger.getPom().asStringBuilder());
+		}
 	}
 
 
