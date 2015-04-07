@@ -38,17 +38,7 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 		MergeResult merge = merge(ref);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
-			getLog().error("There is conflicts in the following files:");
-			for (String key : merge.getConflicts().keySet()) {
-				getLog().error(key);
-			}
-			String message = "\nThe merge has conflicts, please try resolve manually! [from " + ref.getName() + " to " + DEVELOP + "]";
-			message += "\nExecute the steps:";
-			message += "\ngit reset --hard " + DEVELOP;
-			message += "\ngit checkout " + DEVELOP;
-			message += "\ngit merge " + ref.getName();
-			message += "\nmvn gitflow:finish-release -Dversion=" + getVersion();
-			throw buildMojoException(message);
+			throw buildConflictExeption(merge, ref, DEVELOP, getVersion());
 		}
 
 		getLog().info("Updating pom version");

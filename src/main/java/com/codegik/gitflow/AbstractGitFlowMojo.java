@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -40,6 +41,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".00-SNAPSHOT";
 	protected static final String SEPARATOR = "/";
+	protected static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
 
     @Component
     private MavenProject project;

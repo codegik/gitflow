@@ -2,7 +2,9 @@ package com.codegik.gitflow;
 
 import java.io.File;
 import java.util.List;
+import java.util.regex.Matcher;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
@@ -124,18 +126,20 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 	}
 
 
-	/**
-	 * TODO
-	 * Nao funciona!
-	 */
 	protected Ref findTag(String tag) throws Exception {
 		getLog().info("Looking for tag " + tag);
 
-		for (Ref b : getGit().tagList().call()) {
-			if (tag.equals(b.getName().toLowerCase().replace("refs/tags/", ""))) {
-				return b;
-			}
-		}
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(tag);
+
+        if (matcher.find()) {
+        	String matchTag = matcher.group(0);
+        	for (Ref b : getGit().tagList().call()) {
+        		if (matchTag.equals(b.getName().toLowerCase().replace("refs/tags/", ""))) {
+        			return b;
+        		}
+        	}
+        }
+
 
 		return null;
 	}
@@ -160,7 +164,23 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 		descriptor.setScmUsername(getUsername());
 		descriptor.setScmPassword(getPassword());
 		descriptor.setUpdateDependencies(true);
+		descriptor.setScmTagNameFormat("@{project.version}");
 
 		return descriptor;
+	}
+
+
+	protected MojoExecutionException buildConflictExeption(MergeResult merge, Ref ref, String destine, String version) {
+		getLog().error("There is conflicts in the following files:");
+		for (String key : merge.getConflicts().keySet()) {
+			getLog().error(key);
+		}
+		String message = "\nThe merge has conflicts, please try resolve manually! [from " + ref.getName() + " to " + destine + "]";
+		message += "\nExecute the steps:";
+		message += "\ngit reset --hard " + destine;
+		message += "\ngit checkout " + destine;
+		message += "\ngit merge " + ref.getName();
+		message += "\nmvn gitflow:publish-release -Dversion=" + version;
+		return buildMojoException(message);
 	}
 }
