@@ -41,6 +41,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".00-SNAPSHOT";
 	protected static final String SEPARATOR = "/";
+	protected static final String FILE_POM = "pom.xml";
 	protected static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
 
     @Component

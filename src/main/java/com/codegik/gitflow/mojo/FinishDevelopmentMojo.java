@@ -2,14 +2,17 @@ package com.codegik.gitflow.mojo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.merge.ResolveMerger.MergeFailureReason;
 
 import com.codegik.gitflow.DefaultGitFlowMojo;
+import com.codegik.gitflow.merge.GitFlowResolveMerger;
 
 
 /**
@@ -43,7 +46,20 @@ public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
 		MergeResult merge = merge(ref);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
-			throw buildMojoException("The merge has conflicts, please try resolve manually! [from " + releaseBranch + " to " + getBranchName() + "]");
+			/**
+			 * TODO
+			 * resolver o merge dos poms
+			 */
+//			GitFlowResolveMerger merger = new GitFlowResolveMerger(getGit().getRepository());
+//			Map<String, MergeFailureReason> conflicts = merger.getFailingPaths();
+//
+//			for (String key : merge.getConflicts().keySet()) {
+//				if (key.contains(FILE_POM)) {
+//					;
+//				}
+//			}
+
+			throw buildConflictExeption(merge, ref, releaseBranch, "finish-development -DfullBranchName=" + getBranchName());
 		}
 
 		push("Pushing merge");

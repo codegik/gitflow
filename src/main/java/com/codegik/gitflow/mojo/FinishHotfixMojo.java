@@ -76,7 +76,9 @@ public class FinishHotfixMojo extends DefaultGitFlowMojo {
 			getReleaseManager().rollback(descriptor, environment, buildMavenProjects());
 			reset(MASTER);
 			checkoutBranchForced(MASTER);
-			deleteTag(lastTag.getName());
+			if (lastTag != null) {
+				deleteTag(lastTag.getName());
+			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

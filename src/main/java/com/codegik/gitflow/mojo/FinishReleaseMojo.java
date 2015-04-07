@@ -53,7 +53,7 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 		getReleaseManager().prepare(descriptor, environment, projects);
 		getReleaseManager().clean(clean);
 
-		lastTag = findTag(getGit().describe().call());
+		lastTag = findLasTag();
 
 		getLog().info("Commiting changed files");
 		commit("[GitFlow::finishi-release] Finish release branch " + getVersion());
@@ -69,7 +69,9 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			reset(DEVELOP);
 			checkoutBranchForced(DEVELOP);
-			deleteTag(lastTag.getName());
+			if (lastTag != null) {
+				deleteTag(lastTag.getName());
+			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}
