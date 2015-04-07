@@ -19,35 +19,30 @@ import com.codegik.gitflow.DefaultGitFlowMojo;
 @Mojo(name = "publish-release", aggregator = true)
 public class PublishReleaseMojo extends DefaultGitFlowMojo {
 
-    @Parameter( property = "tag", required = true )
-	private String tag;
+    @Parameter( property = "version", required = true )
+	private String version;
 
 
 	@Override
 	public void run() throws Exception {
-		Ref tag = findTag(getTag());
+		checkoutBranchForced(DEVELOP);
 
-		if (tag == null) {
-			throw buildMojoException("Could not find tag " + getTag());
-		}
-
-//		Gettting last tag
-//		Ref found = findTag(getGit().describe().call());
+		// Gettting last tag
+		Ref tagRef = findLasTag();
 
 		checkoutBranchForced(MASTER);
 
-		MergeResult merge = merge(tag, MergeStrategy.THEIRS);
+		MergeResult merge = merge(tagRef, MergeStrategy.THEIRS);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
-			throw buildConflictExeption(merge, tag, MASTER, "finish-release -Dtag=" + getTag());
+			throw buildConflictExeption(merge, tagRef, MASTER, "finish-release -Dversion=" + getVersion());
 		}
 
 		push("Pushing merge");
 
-		/**
-		 * TODO
-		 * criar os metodos para deletar branches de feature, bugfix e release
-		 */
+		deleteBranch(getVersion(), BranchType.feature);
+		deleteBranch(getVersion(), BranchType.bugfix);
+		deleteBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
 	}
 
 
@@ -56,20 +51,19 @@ public class PublishReleaseMojo extends DefaultGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			reset(DEVELOP);
-			checkoutBranchForced(DEVELOP);
-			deleteTag(getTag());
+			reset(MASTER);
+			checkoutBranchForced(MASTER);
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}
 
 
-	public String getTag() {
-		return tag;
+	public String getVersion() {
+		return version;
 	}
 
 
-	public void setTag(String tag) {
-		this.tag = tag;
+	public void setVersion(String version) {
+		this.version = version;
 	}
 }

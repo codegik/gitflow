@@ -1,6 +1,11 @@
 package com.codegik.gitflow;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 
@@ -8,13 +13,14 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -49,9 +55,37 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 	}
 
 
+	protected List<String> deleteBranch(Ref branchRef) throws Exception {
+		return getGit().branchDelete().setForce(true).setBranchNames(branchRef.getName()).call();
+	}
+
+
 	protected List<String> deleteBranch(String branchName) throws Exception {
 		getLog().info("Deleting branch " + branchName);
-		return getGit().branchDelete().setForce(true).setBranchNames(branchName).call();
+		Ref branchRef = findBranch(branchName);
+
+		if (branchRef == null) {
+			throw buildMojoException("Branch " + branchName + " not found");
+		}
+
+		return deleteBranch(branchRef);
+	}
+
+
+	protected List<String> deleteBranch(String version, BranchType branchType) throws Exception {
+		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
+
+		List<String> result = new ArrayList<String>();
+		String release		= branchType.toString() + SEPARATOR + version;
+
+		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
+			if (b.getName().contains(release)) {
+				result.addAll(deleteBranch(b));
+				getLog().info(" > Deleted " + b.getName());
+			}
+		}
+
+		return result;
 	}
 
 
@@ -116,13 +150,35 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 		getLog().info("Looking for branch " + branch);
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", "")) ||
-				branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
+			if (branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
 				return b;
 			}
 		}
 
 		return null;
+	}
+
+
+	protected Ref findLasTag() throws Exception {
+		final RevWalk walk = new RevWalk(getGit().getRepository());
+		List<Ref> tags = getGit().tagList().call();
+
+		Collections.sort(tags, new Comparator<Ref>() {
+			public int compare(Ref o1, Ref o2) {
+				Date d1 = null;
+				Date d2 = null;
+				try {
+					d1 = walk.parseTag(o1.getObjectId()).getTaggerIdent().getWhen();
+					d2 = walk.parseTag(o2.getObjectId()).getTaggerIdent().getWhen();
+
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				return d1.compareTo(d2);
+			}
+		});
+
+		return tags.get(tags.size()-1);
 	}
 
 
