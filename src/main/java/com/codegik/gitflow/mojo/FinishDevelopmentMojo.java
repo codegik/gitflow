@@ -1,4 +1,4 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.mojo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,8 +7,9 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
+
+import com.codegik.gitflow.DefaultGitFlowMojo;
 
 
 /**
@@ -17,7 +18,7 @@ import org.eclipse.jgit.lib.Ref;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-development", aggregator = true)
-public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
+public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
 
     @Parameter( property = "fullBranchName", required = true )
     private String branchName;
@@ -31,17 +32,15 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		String[] branchInfo 	= validateFullBranchName(getBranchName());
 		String releaseBranch 	= PREFIX_RELEASE + SEPARATOR + branchInfo[1];
 
-		getLog().info("Checkout into " + releaseBranch);
-		getGit().checkout().setCreateBranch(false).setName(releaseBranch).call();
+		checkoutBranch(releaseBranch);
 
-		getLog().info("Merging with " + getBranchName());
 		Ref ref = findBranch(getBranchName());
 
 		if (ref == null) {
 			throw buildMojoException("The fullBranchName " + getBranchName() + " not found!");
 		}
 
-		MergeResult merge = getGit().merge().include(ref).call();
+		MergeResult merge = merge(ref);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
 			throw buildMojoException("The merge has conflicts, please try resolve manually! [from " + releaseBranch + " to " + getBranchName() + "]");
@@ -50,11 +49,8 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		push("Pushing merge");
 
 		if (deleteBranchAfter) {
-			getLog().info("Deleting development branch " + getBranchName());
-			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
+			deleteBranch(getBranchName());
 		}
-
-        getLog().info("DONE");
 	}
 
 
@@ -90,8 +86,8 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
-			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
+			reset(DEVELOP);
+			checkoutBranchForced(DEVELOP);
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

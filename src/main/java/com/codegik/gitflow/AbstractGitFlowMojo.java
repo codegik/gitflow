@@ -19,11 +19,7 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.ReleaseManager;
-import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.codehaus.mojo.versions.api.PomHelper;
-import org.codehaus.mojo.versions.change.ProjectVersionChanger;
 import org.codehaus.mojo.versions.change.VersionChange;
 import org.codehaus.mojo.versions.change.VersionChanger;
 import org.codehaus.mojo.versions.change.VersionChangerFactory;
@@ -31,13 +27,6 @@ import org.codehaus.mojo.versions.rewriting.ModifiedPomXMLEventReader;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.WriterFactory;
 import org.codehaus.stax2.XMLInputFactory2;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.PushResult;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 
 public abstract class AbstractGitFlowMojo extends AbstractMojo {
@@ -51,7 +40,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".00-SNAPSHOT";
 	protected static final String SEPARATOR = "/";
-	private Git git;
 
     @Component
     private MavenProject project;
@@ -74,42 +62,11 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
     	try {
     		run();
+    		getLog().info("DONE");
     	} catch (Exception e) {
     		rollback(e);
     	}
     }
-
-
-	protected Git getGit() throws Exception {
-		if (git == null) {
-			git = Git.open(new File("."));
-		}
-
-		return git;
-	}
-
-
-	protected Ref findBranch(String branch) throws Exception {
-		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", "")) ||
-				branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
-	}
-
-
-	protected Ref findTag(String tag) throws Exception {
-		for (Ref b : getGit().tagList().call()) {
-			if (tag.equals(b.getName().toLowerCase().replace("tags/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
-	}
 
 
 	protected void validadeVersion(String version) throws MojoExecutionException {
@@ -156,53 +113,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	}
 
 
-	protected RevCommit commit(String message) throws Exception {
-		return getGit().commit().setAll(true).setMessage(message).call();
-	}
-
-
-	protected Iterable<PushResult> push() throws Exception {
-		return push(null);
-	}
-
-
-	protected Iterable<PushResult> push(String logMessage) throws Exception {
-		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
-
-		if (getUsername() != null && getPassword() != null) {
-	        CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(getUsername(), getPassword());
-	        return getGit().push().setCredentialsProvider(credentialsProvider).call();
-		}
-
-		return getGit().push().call();
-	}
-
-
-	protected ReleaseEnvironment buildDefaultReleaseEnvironment() throws Exception {
-		ReleaseEnvironment environment = new DefaultReleaseEnvironment();
-
-		environment.setLocalRepositoryDirectory(getGit().getRepository().getDirectory());
-
-		return environment;
-	}
-
-
-	protected ReleaseDescriptor buildReleaseDescriptor() throws Exception {
-		ReleaseDescriptor descriptor = new ReleaseDescriptor();
-
-		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
-		descriptor.setAutoVersionSubmodules(true);
-		descriptor.setInteractive(false);
-		descriptor.setUpdateWorkingCopyVersions(true);
-		descriptor.setWorkingDirectory(getGit().getRepository().getDirectory().getParent());
-		descriptor.setScmUsername(getUsername());
-		descriptor.setScmPassword(getPassword());
-		descriptor.setUpdateDependencies(true);
-
-		return descriptor;
-	}
-
-
 	@SuppressWarnings("unchecked")
 	protected List<MavenProject> buildMavenProjects() throws IOException {
 		List<MavenProject> projectList = new ArrayList<MavenProject>();
@@ -210,7 +120,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 		projectList.add(rootProject);
 
-		List<MavenProject> submodules = (List<MavenProject>)rootProject.getCollectedProjects();
+		List<MavenProject> submodules = rootProject.getCollectedProjects();
 
 		projectList.addAll(submodules);
 
@@ -220,6 +130,8 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	@SuppressWarnings("rawtypes")
 	protected void updatePomVersion(String newVersion) throws Exception {
+		getLog().info("Updating pom version");
+
 		List<MavenProject> projects = buildMavenProjects();
 		List<VersionChange> changes = new ArrayList<VersionChange>();
 
@@ -266,28 +178,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 			}
 
 			writeFile(pom, versionChangerFactory.getPom().asStringBuilder());
-		}
-	}
-
-
-	protected void updatePomVersion2(String newVersion) throws Exception {
-		List<MavenProject> projects = buildMavenProjects();
-
-		for (MavenProject project : projects) {
-			File pom 							= project.getFile();
-			ModifiedPomXMLEventReader newPom 	= newModifiedPomXER(PomHelper.readXmlFile(pom));
-			Model newPomModel 					= newPom.parse();
-			VersionChange versionChange 		= new VersionChange(
-				getProject().getGroupId(),
-				getProject().getArtifactId(),
-				newPomModel.getVersion(),
-				newVersion
-			);
-
-			ProjectVersionChanger projectVersionChanger = new ProjectVersionChanger(project.getModel(), newPom, getLog());
-			projectVersionChanger.apply(versionChange);
-
-			writeFile(pom, projectVersionChanger.getPom().asStringBuilder());
 		}
 	}
 

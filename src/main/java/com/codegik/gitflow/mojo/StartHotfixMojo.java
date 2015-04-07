@@ -1,9 +1,9 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.mojo;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
+import com.codegik.gitflow.DefaultGitFlowMojo;
 
 
 /**
@@ -12,7 +12,7 @@ import org.eclipse.jgit.api.ResetCommand.ResetType;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-hotfix", aggregator = true)
-public class StartHotfixMojo extends AbstractGitFlowMojo {
+public class StartHotfixMojo extends DefaultGitFlowMojo {
 
 	@Parameter( property = "branchName", required = true )
 	private String branchName;
@@ -26,18 +26,14 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
 
-		getLog().info("Creating branch " + getBranchName());
-		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
+		createBranch(getBranchName());
 
-		getLog().info("Updating pom version");
 		updatePomVersion(getProject().getVersion() + SUFFIX);
 
 		getLog().info("Commiting changed files");
 		commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());
 
         push("Pushing commit");
-
-        getLog().info("DONE");
 	}
 
 
@@ -46,9 +42,9 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rollbacking all changes");
-			getGit().reset().setMode(ResetType.HARD).setRef(MASTER).call();
-			getGit().checkout().setCreateBranch(false).setForce(true).setName(MASTER).call();
-			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
+			reset(MASTER);
+			checkoutBranchForced(MASTER);
+			deleteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

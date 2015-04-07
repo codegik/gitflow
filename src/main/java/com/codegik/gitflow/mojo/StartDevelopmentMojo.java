@@ -1,9 +1,9 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.mojo;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
+import com.codegik.gitflow.DefaultGitFlowMojo;
 
 
 /**
@@ -13,7 +13,7 @@ import org.eclipse.jgit.api.ResetCommand.ResetType;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-development", aggregator = true)
-public class StartDevelopmentMojo extends AbstractGitFlowMojo {
+public class StartDevelopmentMojo extends DefaultGitFlowMojo {
 
     @Parameter( property = "version", required = true )
 	private String version;
@@ -28,16 +28,14 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 	@Override
 	public void run() throws Exception {
 		validadeVersion(getVersion());
-		setBranchName(branchType.toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 
-		getLog().info("Checkout into " + PREFIX_RELEASE + SEPARATOR + getVersion());
-		getGit().checkout().setCreateBranch(false).setName(PREFIX_RELEASE + SEPARATOR + getVersion()).call();
+		setBranchName(getBranchType().toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 
-		getLog().info("Creating branch " + getBranchName());
-		getGit().checkout().setCreateBranch(true).setName(getBranchName()).call();
+		checkoutBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
+
+		createBranch(getBranchName());
 
 		push("Pushing branch " + getBranchName());
-        getLog().info("DONE");
 	}
 
 
@@ -46,9 +44,9 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			getGit().reset().setMode(ResetType.HARD).setRef(DEVELOP).call();
-			getGit().checkout().setCreateBranch(false).setForce(true).setName(DEVELOP).call();
-			getGit().branchDelete().setForce(true).setBranchNames(getBranchName()).call();
+			reset(DEVELOP);
+			checkoutBranchForced(DEVELOP);
+			deleteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}
