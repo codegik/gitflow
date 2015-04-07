@@ -38,7 +38,7 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 		MergeResult merge = merge(ref);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
-			throw buildConflictExeption(merge, ref, DEVELOP, getVersion());
+			throw buildConflictExeption(merge, ref, DEVELOP, "finish-release -Dversion=" + getVersion());
 		}
 
 		getLog().info("Updating pom version");

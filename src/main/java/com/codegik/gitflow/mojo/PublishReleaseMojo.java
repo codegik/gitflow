@@ -39,7 +39,7 @@ public class PublishReleaseMojo extends DefaultGitFlowMojo {
 		MergeResult merge = merge(tag, MergeStrategy.THEIRS);
 
 		if (!merge.getMergeStatus().isSuccessful()) {
-			throw buildConflictExeption(merge, tag, MASTER, getTag());
+			throw buildConflictExeption(merge, tag, MASTER, "finish-release -Dtag=" + getTag());
 		}
 
 		push("Pushing merge");

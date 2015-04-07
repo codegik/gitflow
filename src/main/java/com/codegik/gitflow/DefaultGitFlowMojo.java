@@ -170,7 +170,7 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 	}
 
 
-	protected MojoExecutionException buildConflictExeption(MergeResult merge, Ref ref, String destine, String version) {
+	protected MojoExecutionException buildConflictExeption(MergeResult merge, Ref ref, String destine, String callbackCommand) {
 		getLog().error("There is conflicts in the following files:");
 		for (String key : merge.getConflicts().keySet()) {
 			getLog().error(key);
@@ -180,7 +180,7 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 		message += "\ngit reset --hard " + destine;
 		message += "\ngit checkout " + destine;
 		message += "\ngit merge " + ref.getName();
-		message += "\nmvn gitflow:publish-release -Dversion=" + version;
+		message += "\nmvn gitflow:" + callbackCommand;
 		return buildMojoException(message);
 	}
 }
