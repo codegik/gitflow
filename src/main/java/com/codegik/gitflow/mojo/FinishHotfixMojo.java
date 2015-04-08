@@ -39,18 +39,11 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
 		List<MavenProject> projects		= buildMavenProjects();
 		Ref hotfixRef 					= gitFlow.findBranch(getBranchName());
-		lastTag 						= gitFlow.findLasTag();
-		String develVersion				= lastTag.getName().split("/")[2] + SUFFIX;
 
-		/**
-		 * TODO
-		 * Tem problema em gerar a nova tag pois ela j‡ existe devido a ter sido gerada pelo finish-release
-		 * Provavelmente o pom dever‡ ser atualizado para ter a vers‹o mais nova (inc lastTag)
-		 * Talves seja necess‡rio chamar o updatePomVersion(develVersion) antes de realizar o prepare
-		 */
-
-		descriptor.setDefaultDevelopmentVersion(develVersion);
+		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
 		getReleaseManager().prepare(descriptor, environment, projects);
+
+		lastTag = gitFlow.findLasTag();
 
 		gitFlow.push("Pushing changes to " + getBranchName());
 		gitFlow.checkoutBranch(DEVELOP);
@@ -71,6 +64,11 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
 		gitFlow.push("Pushing changes to " + MASTER);
 		gitFlow.deleteBranch(getBranchName());
+
+		/**
+		 * TODO
+		 * Deletar o branch remoto
+		 */
 	}
 
 

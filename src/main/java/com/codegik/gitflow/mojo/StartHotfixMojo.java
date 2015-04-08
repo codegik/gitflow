@@ -23,14 +23,16 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
 		if (!gitFlow.getBranch().toLowerCase().equals(MASTER)) {
-			throw buildMojoException("You must be on master branch for execute this goal!");
+			throw buildMojoException("You must be on branch master for execute this goal!");
 		}
 
 		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
 
 		gitFlow.createBranch(getBranchName());
 
-		updatePomVersion(getProject().getVersion() + SUFFIX);
+		String newVersion = gitFlow.incrementVersion(getProject().getVersion());
+
+		updatePomVersion(newVersion + SUFFIX);
 
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());

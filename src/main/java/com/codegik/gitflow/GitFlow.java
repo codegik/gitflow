@@ -1,5 +1,9 @@
 package com.codegik.gitflow;
 
+import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
+import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
+import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -111,7 +115,8 @@ public class GitFlow {
 
 	public List<String> deleteBranch(String branchName) throws Exception {
 		getLog().info("Deleting branch " + branchName);
-		Ref branchRef = findBranch(branchName);
+		Ref branchRef 	= findLocalBranch(branchName);
+		branchRef 		= branchRef == null ? findBranch(branchName) : null;
 
 		if (branchRef == null) {
 			throw buildMojoException("Branch " + branchName + " not found");
@@ -125,7 +130,7 @@ public class GitFlow {
 		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
 
 		List<String> result = new ArrayList<String>();
-		String release		= branchType.toString() + AbstractGitFlowMojo.SEPARATOR + version;
+		String release		= branchType.toString() + SEPARATOR + version;
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
 			if (b.getName().contains(release)) {
@@ -216,9 +221,35 @@ public class GitFlow {
 	}
 
 
+	public Ref findLocalBranch(String branch) throws Exception {
+		getLog().info("Looking for local branch " + branch);
+
+		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
+			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
+				return b;
+			}
+		}
+
+		return null;
+	}
+
+
 	public Ref findLasTag() throws Exception {
+		return findLasTag(null);
+	}
+
+	public Ref findLasTag(String releaseVersion) throws Exception {
 		final RevWalk walk = new RevWalk(getGit().getRepository());
 		List<Ref> tags = getGit().tagList().call();
+
+		if (releaseVersion != null) {
+			for (int i = 0; i < tags.size(); i++) {
+				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion)) {
+					tags.remove(i);
+					i = 0;
+				}
+			}
+		}
 
 		Collections.sort(tags, new Comparator<Ref>() {
 			public int compare(Ref o1, Ref o2) {
@@ -227,7 +258,6 @@ public class GitFlow {
 				try {
 					d1 = walk.parseTag(o1.getObjectId()).getTaggerIdent().getWhen();
 					d2 = walk.parseTag(o2.getObjectId()).getTaggerIdent().getWhen();
-
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -235,19 +265,19 @@ public class GitFlow {
 			}
 		});
 
-		return tags.get(tags.size()-1);
+		return tags.size() > 0 ? tags.get(tags.size()-1) : null;
 	}
 
 
 	public Ref findTag(String tag) throws Exception {
 		getLog().info("Looking for tag " + tag);
 
-		Matcher matcher = AbstractGitFlowMojo.TAG_VERSION_PATTERN.matcher(tag);
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(tag);
 
         if (matcher.find()) {
         	String matchTag = matcher.group(0);
         	for (Ref b : getGit().tagList().call()) {
-        		if (matchTag.equals(b.getName().toLowerCase().replace("refs/tags/", ""))) {
+        		if (matchTag.equals(b.getName().toLowerCase().replace(PREFIX_TAG + SEPARATOR, ""))) {
         			return b;
         		}
         	}
@@ -316,6 +346,33 @@ public class GitFlow {
 	public MojoExecutionException buildMojoException(String errorMessage, Exception e) {
 		getLog().error(errorMessage);
 		return new MojoExecutionException(errorMessage, e);
+	}
+
+
+	public String incrementVersion(String version) throws Exception {
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
+
+		if (matcher.find()) {
+			String releaseVersion 	= String.format("%s.%s", matcher.group(1), matcher.group(2));
+			Ref lastTag 			= findLasTag(releaseVersion);
+			String newVersion 		= null;
+			Integer increment 		= null;
+
+			if (lastTag == null) {
+				newVersion = matcher.group(3);
+			} else {
+				newVersion 	= lastTag.getName().replace(PREFIX_TAG + SEPARATOR, "");
+				matcher 	= TAG_VERSION_PATTERN.matcher(newVersion);
+				newVersion 	= matcher.find() ? matcher.group(3) : null;
+			}
+
+			increment = new Integer(newVersion);
+			increment++;
+
+			return matcher.group().replace(newVersion, String.format("%02d", increment));
+		}
+
+		throw buildMojoException("The version " + version + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
 	}
 
 
