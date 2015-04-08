@@ -40,9 +40,9 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected static final String PREFIX_HOTFIX = "hotfix";
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".00-SNAPSHOT";
-	protected static final String SEPARATOR = "/";
-	protected static final String FILE_POM = "pom.xml";
-	protected static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
+	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
+	public static final String SEPARATOR = "/";
+	public static final String FILE_POM = "pom.xml";
 
     @Component
     private MavenProject project;
@@ -57,17 +57,18 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     private String username;
 
 
-    public abstract void run() throws Exception;
+    public abstract void run(GitFlow gitFlow) throws Exception;
 
-    public abstract void rollback(Exception e) throws MojoExecutionException;
+    public abstract void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException;
 
 
     public void execute() throws MojoExecutionException, MojoFailureException {
+    	GitFlow gitFlow = new GitFlow(getLog(), getUsername(), getPassword());
     	try {
-    		run();
+    		run(gitFlow);
     		getLog().info("DONE");
     	} catch (Exception e) {
-    		rollback(e);
+    		rollback(gitFlow, e);
     	}
     }
 

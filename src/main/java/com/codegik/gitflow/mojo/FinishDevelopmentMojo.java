@@ -2,17 +2,15 @@ package com.codegik.gitflow.mojo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.merge.ResolveMerger.MergeFailureReason;
 
-import com.codegik.gitflow.DefaultGitFlowMojo;
-import com.codegik.gitflow.merge.GitFlowResolveMerger;
+import com.codegik.gitflow.AbstractGitFlowMojo;
+import com.codegik.gitflow.GitFlow;
+import com.codegik.gitflow.MergeGitFlow;
 
 
 /**
@@ -21,7 +19,7 @@ import com.codegik.gitflow.merge.GitFlowResolveMerger;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-development", aggregator = true)
-public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
+public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 
     @Parameter( property = "fullBranchName", required = true )
     private String branchName;
@@ -31,41 +29,28 @@ public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
 
 
 	@Override
-	public void run() throws Exception {
+	public void run(GitFlow gitFlow) throws Exception {
 		String[] branchInfo 	= validateFullBranchName(getBranchName());
 		String releaseBranch 	= PREFIX_RELEASE + SEPARATOR + branchInfo[1];
 
-		checkoutBranch(releaseBranch);
+		gitFlow.checkoutBranch(releaseBranch);
 
-		Ref ref = findBranch(getBranchName());
+		Ref ref = gitFlow.findBranch(getBranchName());
 
 		if (ref == null) {
 			throw buildMojoException("The fullBranchName " + getBranchName() + " not found!");
 		}
 
-		MergeResult merge = merge(ref);
+		MergeGitFlow mergeGitFlow = new MergeGitFlow();
+		mergeGitFlow.setBranchName(releaseBranch);
+		mergeGitFlow.setErrorMessage("finish-development -DfullBranchName=" + getBranchName());
+		mergeGitFlow.setTargetRef(ref);
 
-		if (!merge.getMergeStatus().isSuccessful()) {
-			/**
-			 * TODO
-			 * resolver o merge dos poms
-			 */
-//			GitFlowResolveMerger merger = new GitFlowResolveMerger(getGit().getRepository());
-//			Map<String, MergeFailureReason> conflicts = merger.getFailingPaths();
-//
-//			for (String key : merge.getConflicts().keySet()) {
-//				if (key.contains(FILE_POM)) {
-//					;
-//				}
-//			}
-
-			throw buildConflictExeption(merge, ref, releaseBranch, "finish-development -DfullBranchName=" + getBranchName());
-		}
-
-		push("Pushing merge");
+		gitFlow.merge(mergeGitFlow);
+		gitFlow.push("Pushing merge");
 
 		if (deleteBranchAfter) {
-			deleteBranch(getBranchName());
+			gitFlow.deleteBranch(getBranchName());
 		}
 	}
 
@@ -98,12 +83,12 @@ public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
 
 
 	@Override
-	public void rollback(Exception e) throws MojoExecutionException {
+	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			reset(DEVELOP);
-			checkoutBranchForced(DEVELOP);
+			gitFlow.reset(DEVELOP);
+			gitFlow.checkoutBranchForced(DEVELOP);
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

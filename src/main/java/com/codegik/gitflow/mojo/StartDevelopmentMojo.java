@@ -3,7 +3,9 @@ package com.codegik.gitflow.mojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import com.codegik.gitflow.DefaultGitFlowMojo;
+
+import com.codegik.gitflow.AbstractGitFlowMojo;
+import com.codegik.gitflow.GitFlow;
 
 
 /**
@@ -13,7 +15,7 @@ import com.codegik.gitflow.DefaultGitFlowMojo;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-development", aggregator = true)
-public class StartDevelopmentMojo extends DefaultGitFlowMojo {
+public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
     @Parameter( property = "version", required = true )
 	private String version;
@@ -26,27 +28,27 @@ public class StartDevelopmentMojo extends DefaultGitFlowMojo {
 
 
 	@Override
-	public void run() throws Exception {
+	public void run(GitFlow gitFlow) throws Exception {
 		validadeVersion(getVersion());
 
 		setBranchName(getBranchType().toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 
-		checkoutBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
+		gitFlow.checkoutBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
 
-		createBranch(getBranchName());
+		gitFlow.createBranch(getBranchName());
 
-		push("Pushing branch " + getBranchName());
+		gitFlow.push("Pushing branch " + getBranchName());
 	}
 
 
 	@Override
-	public void rollback(Exception e) throws MojoExecutionException {
+	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			reset(DEVELOP);
-			checkoutBranchForced(DEVELOP);
-			deleteBranch(getBranchName());
+			gitFlow.reset(DEVELOP);
+			gitFlow.checkoutBranchForced(DEVELOP);
+			gitFlow.deleteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

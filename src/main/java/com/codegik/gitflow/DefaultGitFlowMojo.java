@@ -14,6 +14,7 @@ import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
@@ -110,6 +111,13 @@ public abstract class DefaultGitFlowMojo extends AbstractGitFlowMojo {
 	protected Ref checkoutBranch(String branchName) throws Exception {
 		getLog().info("Checkout into " + branchName);
 		return getGit().checkout().setCreateBranch(false).setName(branchName).call();
+	}
+
+
+	protected Ref checkoutFiles(String branchName, String file, Stage stage) throws Exception {
+		getLog().info("Updating file " + file + " from branch " + branchName + " using " + stage.toString());
+		getGit().add().addFilepattern(file).call();
+		return getGit().checkout().addPath(file).setName(branchName).setCreateBranch(false).setStage(stage).call();
 	}
 
 

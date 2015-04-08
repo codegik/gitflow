@@ -3,7 +3,9 @@ package com.codegik.gitflow.mojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import com.codegik.gitflow.DefaultGitFlowMojo;
+
+import com.codegik.gitflow.AbstractGitFlowMojo;
+import com.codegik.gitflow.GitFlow;
 
 
 /**
@@ -12,39 +14,38 @@ import com.codegik.gitflow.DefaultGitFlowMojo;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-hotfix", aggregator = true)
-public class StartHotfixMojo extends DefaultGitFlowMojo {
+public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 	@Parameter( property = "branchName", required = true )
 	private String branchName;
 
 
 	@Override
-	public void run() throws Exception {
-		if (!getGit().getRepository().getBranch().toLowerCase().equals(MASTER)) {
+	public void run(GitFlow gitFlow) throws Exception {
+		if (!gitFlow.getBranch().toLowerCase().equals(MASTER)) {
 			throw buildMojoException("You must be on master branch for execute this goal!");
 		}
 
 		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
 
-		createBranch(getBranchName());
+		gitFlow.createBranch(getBranchName());
 
 		updatePomVersion(getProject().getVersion() + SUFFIX);
 
 		getLog().info("Commiting changed files");
-		commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());
-
-        push("Pushing commit");
+		gitFlow.commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());
+		gitFlow.push("Pushing commit");
 	}
 
 
 	@Override
-	public void rollback(Exception e) throws MojoExecutionException {
+	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rollbacking all changes");
-			reset(MASTER);
-			checkoutBranchForced(MASTER);
-			deleteBranch(getBranchName());
+			gitFlow.reset(MASTER);
+			gitFlow.checkoutBranchForced(MASTER);
+			gitFlow.deleteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

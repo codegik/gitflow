@@ -9,10 +9,11 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.ReleaseCleanRequest;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.lib.Ref;
 
-import com.codegik.gitflow.DefaultGitFlowMojo;
+import com.codegik.gitflow.AbstractGitFlowMojo;
+import com.codegik.gitflow.GitFlow;
+import com.codegik.gitflow.MergeGitFlow;
 
 
 /**
@@ -21,7 +22,7 @@ import com.codegik.gitflow.DefaultGitFlowMojo;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-release", aggregator = true)
-public class FinishReleaseMojo extends DefaultGitFlowMojo {
+public class FinishReleaseMojo extends AbstractGitFlowMojo {
 	private Ref lastTag;
 
     @Parameter( property = "version", required = true )
@@ -29,22 +30,24 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 
 
 	@Override
-	public void run() throws Exception {
+	public void run(GitFlow gitFlow) throws Exception {
 		validadeVersion(getVersion());
 
-		checkoutBranch(DEVELOP);
+		gitFlow.checkoutBranchForced(DEVELOP);
 
-		Ref ref = findBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
-		MergeResult merge = merge(ref);
+		Ref ref = gitFlow.findBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
 
-		if (!merge.getMergeStatus().isSuccessful()) {
-			throw buildConflictExeption(merge, ref, DEVELOP, "finish-release -Dversion=" + getVersion());
-		}
+		MergeGitFlow mergeGitFlow = new MergeGitFlow();
+		mergeGitFlow.setBranchName(DEVELOP);
+		mergeGitFlow.setErrorMessage("finish-release -Dversion=" + getVersion());
+		mergeGitFlow.setTargetRef(ref);
+
+		gitFlow.merge(mergeGitFlow);
 
 		getLog().info("Updating pom version");
-		ReleaseDescriptor descriptor 	= buildReleaseDescriptor();
+		ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
+		ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
 		ReleaseCleanRequest clean		= new ReleaseCleanRequest();
-		ReleaseEnvironment environment 	= buildDefaultReleaseEnvironment();
 		List<MavenProject> projects		= buildMavenProjects();
 
 		clean.setReactorProjects(projects);
@@ -53,24 +56,24 @@ public class FinishReleaseMojo extends DefaultGitFlowMojo {
 		getReleaseManager().prepare(descriptor, environment, projects);
 		getReleaseManager().clean(clean);
 
-		lastTag = findLasTag();
+		lastTag = gitFlow.findLasTag();
 
 		getLog().info("Commiting changed files");
-		commit("[GitFlow::finishi-release] Finish release branch " + getVersion());
+		gitFlow.commit("[GitFlow::finishi-release] Finish release branch " + getVersion());
 
-		push("Pushing commit");
+		gitFlow.push("Pushing commit");
 	}
 
 
 	@Override
-	public void rollback(Exception e) throws MojoExecutionException {
+	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			reset(DEVELOP);
-			checkoutBranchForced(DEVELOP);
+			gitFlow.reset(DEVELOP);
+			gitFlow.checkoutBranchForced(DEVELOP);
 			if (lastTag != null) {
-				deleteTag(lastTag.getName());
+				gitFlow.deleteTag(lastTag.getName());
 			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);

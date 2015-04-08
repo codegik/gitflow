@@ -4,14 +4,15 @@ import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
 
-import com.codegik.gitflow.DefaultGitFlowMojo;
+import com.codegik.gitflow.AbstractGitFlowMojo;
+import com.codegik.gitflow.GitFlow;
+import com.codegik.gitflow.MergeGitFlow;
 
 
 /**
@@ -20,64 +21,74 @@ import com.codegik.gitflow.DefaultGitFlowMojo;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-hotfix", aggregator = true)
-public class FinishHotfixMojo extends DefaultGitFlowMojo {
+public class FinishHotfixMojo extends AbstractGitFlowMojo {
 	private Ref lastTag;
-
-    @Parameter( property = "branchName", required = true )
     private String branchName;
 
 
 	@Override
-	public void run() throws Exception {
-		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
+	public void run(GitFlow gitFlow) throws Exception {
+		setBranchName(gitFlow.getBranch());
 
-		checkoutBranch(getBranchName());
+		if (!getBranchName().startsWith(PREFIX_HOTFIX)) {
+			throw buildMojoException("You must be on hotfix branch for execute this goal! EX: hotfix/issue3423");
+		}
 
 		getLog().info("Updating pom version");
-		ReleaseDescriptor descriptor 	= buildReleaseDescriptor();
-		ReleaseEnvironment environment 	= buildDefaultReleaseEnvironment();
+		ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
+		ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
 		List<MavenProject> projects		= buildMavenProjects();
+		Ref hotfixRef 					= gitFlow.findBranch(getBranchName());
+		lastTag 						= gitFlow.findLasTag();
+		String develVersion				= lastTag.getName().split("/")[2] + SUFFIX;
 
-		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
+		/**
+		 * TODO
+		 * Tem problema em gerar a nova tag pois ela j‡ existe devido a ter sido gerada pelo finish-release
+		 * Provavelmente o pom dever‡ ser atualizado para ter a vers‹o mais nova (inc lastTag)
+		 * Talves seja necess‡rio chamar o updatePomVersion(develVersion) antes de realizar o prepare
+		 */
+
+		descriptor.setDefaultDevelopmentVersion(develVersion);
 		getReleaseManager().prepare(descriptor, environment, projects);
-		getReleaseManager().perform(descriptor, environment, projects);
 
-		lastTag 		= findTag(getGit().describe().call());
-		Ref hotfixRef 	= findBranch(getBranchName());
+		gitFlow.push("Pushing changes to " + getBranchName());
+		gitFlow.checkoutBranch(DEVELOP);
 
-		push("Pushing changes to " + getBranchName());
+		MergeGitFlow mergeGitFlow = new MergeGitFlow();
+		mergeGitFlow.setBranchName(DEVELOP);
+		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + getBranchName());
+		mergeGitFlow.setTargetRef(hotfixRef);
 
-		checkoutBranch(DEVELOP);
+		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
+		gitFlow.push("Pushing changes to " + DEVELOP);
 
-		merge(hotfixRef, MergeStrategy.THEIRS);
+		gitFlow.checkoutBranch(MASTER);
 
-		push("Pushing changes to " + DEVELOP);
+		mergeGitFlow.setBranchName(MASTER);
+		mergeGitFlow.setTargetRef(lastTag);
 
-		checkoutBranch(MASTER);
-
-		merge(lastTag, MergeStrategy.THEIRS);
-
-		push("Pushing changes to " + MASTER);
-
-		deleteBranch(getBranchName());
+		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
+		gitFlow.push("Pushing changes to " + MASTER);
+		gitFlow.deleteBranch(getBranchName());
 	}
 
 
 	@Override
-	public void rollback(Exception e) throws MojoExecutionException {
+	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
-			ReleaseDescriptor descriptor 	= buildReleaseDescriptor();
-			ReleaseEnvironment environment 	= buildDefaultReleaseEnvironment();
+			ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
+			ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
 
 			descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
 
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
 			getReleaseManager().rollback(descriptor, environment, buildMavenProjects());
-			reset(MASTER);
-			checkoutBranchForced(MASTER);
+			gitFlow.reset(MASTER);
+			gitFlow.checkoutBranchForced(MASTER);
 			if (lastTag != null) {
-				deleteTag(lastTag.getName());
+				gitFlow.deleteTag(lastTag.getName());
 			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
