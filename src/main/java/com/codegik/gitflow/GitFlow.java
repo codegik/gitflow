@@ -1,9 +1,10 @@
 package com.codegik.gitflow;
 
+import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
+import static com.codegik.gitflow.AbstractGitFlowMojo.RELEASE_VERSION_PATTERN;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
 import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
-import static com.codegik.gitflow.AbstractGitFlowMojo.RELEASE_VERSION_PATTERN;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,8 +14,10 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
@@ -39,21 +42,43 @@ public class GitFlow {
 	private Log log;
 	private String username;
 	private String password;
+	private File repository;
 
 
 	public GitFlow(Log log, String username, String passwd) {
+		this(log, username, passwd, new File("."));
+	}
+
+
+	public GitFlow(Log log, String username, String passwd, File repository) {
 		this.log 		= log;
 		this.username 	= username;
 		this.password 	= passwd;
+		this.repository = repository;
 	}
 
 
 	protected Git getGit() throws Exception {
 		if (git == null) {
-			git = Git.open(new File("."));
+			git = Git.open(repository);
 		}
 
 		return git;
+	}
+
+
+	public Ref validadeReleaseVersion(String version) throws Exception {
+		if (!RELEASE_VERSION_PATTERN.matcher(version).find()) {
+			throw buildMojoException("The version pattern is " + RELEASE_VERSION_PATTERN.toString() + "  EX: 1.3");
+		}
+
+		Ref ref = findBranch(PREFIX_RELEASE + SEPARATOR + version);
+
+		if (ref == null) {
+			throw buildMojoException("The version " + PREFIX_RELEASE + SEPARATOR + version + "  not foudn");
+		}
+
+		return ref;
 	}
 
 
@@ -427,6 +452,31 @@ public class GitFlow {
 		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
 
 		return currVersion < releaseVersion ? Stage.THEIRS : Stage.OURS;
+	}
+
+
+	public RevCommit revertCommit(RevCommit commit) throws Exception {
+		return getGit().revert().include(commit).setStrategy(MergeStrategy.OURS).call();
+	}
+
+
+	public GitFlow cloneRepo(MavenProject mavenProject) throws Exception {
+		mavenProject.getScm();
+		File outputDir = new File(mavenProject.getBuild().getOutputDirectory());
+		File checkoutkdir = new File(outputDir, "gitflow-checkout");
+
+		if (!checkoutkdir.mkdirs()) {
+			throw buildMojoException("Could not create dir " + checkoutkdir.getAbsolutePath() + " to checkout repository");
+		}
+
+		GitFlow gitFlow = new GitFlow(getLog(), username, password, checkoutkdir);
+
+		/**
+		 * TODO
+		 * clonar o repositorio
+		 */
+
+		return gitFlow;
 	}
 
 

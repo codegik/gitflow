@@ -29,7 +29,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeReleaseVersion(getVersion());
+		gitFlow.validadeReleaseVersion(getVersion());
 
 		setBranchName(getBranchType().toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 

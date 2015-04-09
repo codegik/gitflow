@@ -25,7 +25,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeReleaseVersion(getVersion());
+		gitFlow.validadeReleaseVersion(getVersion());
 
 		/**
 		 * TODO

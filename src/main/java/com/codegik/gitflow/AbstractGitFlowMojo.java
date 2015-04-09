@@ -76,13 +76,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     }
 
 
-	protected void validadeReleaseVersion(String version) throws MojoExecutionException {
-		if (!RELEASE_VERSION_PATTERN.matcher(version).find()) {
-			throw buildMojoException("The version pattern is " + RELEASE_VERSION_PATTERN.toString() + "  EX: 1.3");
-		}
-	}
-
-
 	protected final ModifiedPomXMLEventReader newModifiedPomXER(StringBuilder input) {
 		ModifiedPomXMLEventReader newPom = null;
 		try {

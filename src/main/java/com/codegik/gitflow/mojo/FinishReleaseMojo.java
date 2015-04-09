@@ -29,16 +29,16 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeReleaseVersion(getVersion());
+		Ref releaseRef = gitFlow.validadeReleaseVersion(getVersion());
 
 		if (!gitFlow.getBranch().equals(DEVELOP)) {
 			throw buildMojoException("You must be on branch develop for execute this goal!");
 		}
 
+		mergedPomVersion = getProject().getVersion();
+
 		/**
-		 * TODO
-		 * Buscar a ultima tag da release e incrementar a versao
-		 * FALTA TESTAR
+		 * Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
 		 */
 		Ref lastTag = gitFlow.findLasTag(getVersion());
 		if (lastTag != null) {
@@ -49,15 +49,14 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 			getLog().info("Commiting changed files");
 			revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
 			gitFlow.push("Pushing commit");
+			mergedPomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 		}
-
-		Ref releaseRef = gitFlow.findBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 		mergeGitFlow.setBranchName(DEVELOP);
 		mergeGitFlow.setErrorMessage("finish-release -Dversion=" + getVersion());
 		mergeGitFlow.setTargetRef(releaseRef);
-		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(getProject().getVersion(), getVersion()));
+		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(mergedPomVersion, getVersion()));
 
 		gitFlow.merge(mergeGitFlow);
 
@@ -81,12 +80,8 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 			gitFlow.checkoutBranchForced(DEVELOP);
 
 			if (revertCommit != null) {
-				/**
-				 * TODO
-				 * Falta implementar
-				 */
-				// gitFlow.revertCommit(revertCommit);
-				// gitFlow.push("Pushing revert commit");
+				 gitFlow.revertCommit(revertCommit);
+				 gitFlow.push("Pushing revert commit");
 			}
 
 			if (mergedPomVersion != null) {
