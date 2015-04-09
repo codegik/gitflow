@@ -40,8 +40,10 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	protected static final String PREFIX_HOTFIX = "hotfix";
 	protected static final String PREFIX_TAG = "refs/tags";
 	protected static final String SUFFIX = "-SNAPSHOT";
-	protected static final String SUFFIX_RELEASE = ".00-SNAPSHOT";
-	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,2})");
+	protected static final String SUFFIX_RELEASE = ".0";
+	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
+	public static final Pattern POM_SNAPSHOT_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,2})(-SNAPSHOT)");
+	public static final Pattern RELEASE_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})");
 	public static final String SEPARATOR = "/";
 	public static final String FILE_POM = "pom.xml";
 
@@ -74,11 +76,9 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     }
 
 
-	protected void validadeVersion(String version) throws MojoExecutionException {
-		String pattern = "[0-9]{1,}\\.[0-9]{1,}";
-
-		if (!version.matches(pattern)) {
-			throw buildMojoException("The version pattern is " + pattern + "  EX: 1.3");
+	protected void validadeReleaseVersion(String version) throws MojoExecutionException {
+		if (!RELEASE_VERSION_PATTERN.matcher(version).find()) {
+			throw buildMojoException("The version pattern is " + RELEASE_VERSION_PATTERN.toString() + "  EX: 1.3");
 		}
 	}
 

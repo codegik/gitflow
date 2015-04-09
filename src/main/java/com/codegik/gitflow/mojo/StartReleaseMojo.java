@@ -1,11 +1,10 @@
 package com.codegik.gitflow.mojo;
 
+import java.util.regex.Matcher;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.eclipse.jgit.lib.Ref;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
@@ -26,26 +25,35 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeVersion(getVersion());
-		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
+		validadeReleaseVersion(getVersion());
 
-		Ref develop = gitFlow.findBranch(DEVELOP);
-
-		if (develop == null) {
-			develop = gitFlow.createBranch(DEVELOP, " Because does not exists");
+		/**
+		 * TODO
+		 * Nao permitir criar a primeira release com 1.0, deve ser no minimo 1.1
+		 * Verificar se ja existe uma tag com o 1.0 e negar a operacao
+		 * FALTA TESTAR
+		 */
+		Matcher matcher = RELEASE_VERSION_PATTERN.matcher(getVersion());
+		if (matcher.find()) {
+			if (Integer.parseInt(matcher.group(2)) == 0) {
+				throw buildMojoException("The first release must be 1.1 at least!");
+			}
 		}
+
+		if (!gitFlow.getBranch().toLowerCase().equals(DEVELOP)) {
+			throw buildMojoException("You must be on branch develop for execute this goal!");
+		}
+
+		setBranchName(PREFIX_RELEASE + SEPARATOR + getVersion());
 
 		gitFlow.createBranch(getBranchName());
 
-		getLog().info("Updating pom version");
-		ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
-		ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
-		descriptor.mapDevelopmentVersion(getProject().getArtifactId(), getVersion() + SUFFIX_RELEASE);
-		descriptor.setDefaultDevelopmentVersion(getVersion() + SUFFIX_RELEASE);
-		getReleaseManager().updateVersions(descriptor, environment, buildMavenProjects());
+		String newVersion = getVersion();
+
+		updatePomVersion(newVersion + SUFFIX_RELEASE);
 
 		getLog().info("Commiting changed files");
-		gitFlow.commit("[GitFlow::start-release] Create release branch " + getBranchName());
+		gitFlow.commit("[GitFlow::start-release] Create release branch " + getBranchName() + ": Bumped version number to " + newVersion + SUFFIX_RELEASE);
 		gitFlow.push("Pushing commit");
 	}
 
@@ -57,7 +65,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			gitFlow.reset(DEVELOP);
 			gitFlow.checkoutBranchForced(branchName);
-			gitFlow.deleteBranch(getBranchName());
+			gitFlow.deleteLocalBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

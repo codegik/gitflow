@@ -9,7 +9,7 @@ import com.codegik.gitflow.GitFlow;
 
 
 /**
- * Start new hotfix branch from master
+ * Start new hotfix branch from master and increment version
  *
  * @author Inacio G Klassmann
  */
@@ -32,10 +32,10 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 		String newVersion = gitFlow.incrementVersion(getProject().getVersion());
 
-		updatePomVersion(newVersion + SUFFIX);
+		updatePomVersion(newVersion);
 
 		getLog().info("Commiting changed files");
-		gitFlow.commit("[GitFlow::start-hotfix] Create release branch " + getBranchName());
+		gitFlow.commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
 		gitFlow.push("Pushing commit");
 	}
 
@@ -47,7 +47,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 			getLog().info("Rollbacking all changes");
 			gitFlow.reset(MASTER);
 			gitFlow.checkoutBranchForced(MASTER);
-			gitFlow.deleteBranch(getBranchName());
+			gitFlow.deleteLocalBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

@@ -3,6 +3,7 @@ package com.codegik.gitflow;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
 import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
+import static com.codegik.gitflow.AbstractGitFlowMojo.RELEASE_VERSION_PATTERN;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.shared.release.config.ReleaseDescriptor;
@@ -59,6 +59,12 @@ public class GitFlow {
 
 	public String getBranch() throws Exception {
 		return getGit().getRepository().getBranch();
+	}
+
+
+	public Ref tag(String tagName, String message) throws Exception {
+		getLog().info("Tagging " + tagName);
+		return getGit().tag().setName(tagName).setMessage(message).call();
 	}
 
 
@@ -115,8 +121,19 @@ public class GitFlow {
 
 	public List<String> deleteBranch(String branchName) throws Exception {
 		getLog().info("Deleting branch " + branchName);
-		Ref branchRef 	= findLocalBranch(branchName);
-		branchRef 		= branchRef == null ? findBranch(branchName) : null;
+		Ref branchRef = findBranch(branchName);
+
+		if (branchRef == null) {
+			throw buildMojoException("Branch " + branchName + " not found");
+		}
+
+		return deleteBranch(branchRef);
+	}
+
+
+	public List<String> deleteLocalBranch(String branchName) throws Exception {
+		getLog().info("Deleting local branch " + branchName);
+		Ref branchRef = findLocalBranch(branchName);
 
 		if (branchRef == null) {
 			throw buildMojoException("Branch " + branchName + " not found");
@@ -201,10 +218,23 @@ public class GitFlow {
 
 		if (username != null && password != null) {
 	        CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+//	        return getGit().push().setPushTags().setPushAll().setCredentialsProvider(credentialsProvider).call();
 	        return getGit().push().setCredentialsProvider(credentialsProvider).call();
 		}
 
 		return getGit().push().call();
+	}
+
+
+	public Iterable<PushResult> pushAll() throws Exception {
+		getLog().info("Pushing all");
+
+		if (username != null && password != null) {
+			CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+	        return getGit().push().setPushTags().setPushAll().setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().push().setPushTags().setPushAll().call();
 	}
 
 
@@ -349,6 +379,11 @@ public class GitFlow {
 	}
 
 
+	public String incrementVersion(Ref lastTag) throws Exception {
+		return incrementVersion(lastTag.getName().replace(PREFIX_TAG + SEPARATOR, ""));
+	}
+
+
 	public String incrementVersion(String version) throws Exception {
 		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
 
@@ -369,10 +404,29 @@ public class GitFlow {
 			increment = new Integer(newVersion);
 			increment++;
 
-			return matcher.group().replace(newVersion, String.format("%02d", increment));
+			return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), increment.toString());
 		}
 
 		throw buildMojoException("The version " + version + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+	}
+
+
+	public Stage defineStageForMerge(String currentVersion, String releaseBranchVersion) throws Exception {
+		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
+		Matcher matcherReleaseBranchVersion = RELEASE_VERSION_PATTERN.matcher(releaseBranchVersion);
+
+		if (!matcherCurrentVersion.find()) {
+			throw buildMojoException("The currentVersion " + currentVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+		}
+
+		if (!matcherReleaseBranchVersion.find()) {
+			throw buildMojoException("The releaseBranchVersion " + releaseBranchVersion + " does not match with pattern " + RELEASE_VERSION_PATTERN.toString());
+		}
+
+		Integer currVersion 	= new Integer(matcherCurrentVersion.group(2));
+		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
+
+		return currVersion < releaseVersion ? Stage.THEIRS : Stage.OURS;
 	}
 
 

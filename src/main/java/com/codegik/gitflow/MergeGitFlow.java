@@ -47,7 +47,7 @@ public class MergeGitFlow {
 
 	@Override
 	public String toString() {
-		return MessageFormat.format("{branchName: {0}, targetRef: {1}}", branchName, targetRef.getName());
+		return MessageFormat.format("branchName: {0}, targetRef: {1}", branchName, targetRef.getName());
 	}
 
 }

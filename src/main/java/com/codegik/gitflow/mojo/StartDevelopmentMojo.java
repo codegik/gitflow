@@ -29,7 +29,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeVersion(getVersion());
+		validadeReleaseVersion(getVersion());
 
 		setBranchName(getBranchType().toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
 
@@ -48,7 +48,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			gitFlow.reset(DEVELOP);
 			gitFlow.checkoutBranchForced(DEVELOP);
-			gitFlow.deleteBranch(getBranchName());
+			gitFlow.deleteLocalBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

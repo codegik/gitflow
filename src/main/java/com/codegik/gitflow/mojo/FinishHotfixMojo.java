@@ -1,14 +1,11 @@
 package com.codegik.gitflow.mojo;
 
-import java.util.List;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.codehaus.mojo.versions.api.PomHelper;
+import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.merge.MergeStrategy;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
@@ -22,52 +19,46 @@ import com.codegik.gitflow.MergeGitFlow;
  */
 @Mojo(name = "finish-hotfix", aggregator = true)
 public class FinishHotfixMojo extends AbstractGitFlowMojo {
-	private Ref lastTag;
+
+	@Parameter( property = "branchName", required = true )
     private String branchName;
+
+	private String mergedPomVersion;
 
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		setBranchName(gitFlow.getBranch());
+		String simpleName = getBranchName();
 
-		if (!getBranchName().startsWith(PREFIX_HOTFIX)) {
-			throw buildMojoException("You must be on hotfix branch for execute this goal! EX: hotfix/issue3423");
+		if (!gitFlow.getBranch().equals(MASTER)) {
+			throw buildMojoException("You must be on branch master for execute this goal!");
 		}
 
-		getLog().info("Updating pom version");
-		ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
-		ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
-		List<MavenProject> projects		= buildMavenProjects();
-		Ref hotfixRef 					= gitFlow.findBranch(getBranchName());
+		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
 
-		descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
-		getReleaseManager().prepare(descriptor, environment, projects);
-
-		lastTag = gitFlow.findLasTag();
-
-		gitFlow.push("Pushing changes to " + getBranchName());
-		gitFlow.checkoutBranch(DEVELOP);
-
+		Ref hotfixRef = gitFlow.findBranch(getBranchName());
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
-		mergeGitFlow.setBranchName(DEVELOP);
-		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + getBranchName());
-		mergeGitFlow.setTargetRef(hotfixRef);
-
-		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
-		gitFlow.push("Pushing changes to " + DEVELOP);
-
-		gitFlow.checkoutBranch(MASTER);
 
 		mergeGitFlow.setBranchName(MASTER);
-		mergeGitFlow.setTargetRef(lastTag);
+		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + simpleName);
+		mergeGitFlow.setTargetRef(hotfixRef);
+		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
 
-		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
-		gitFlow.push("Pushing changes to " + MASTER);
+		gitFlow.merge(mergeGitFlow);
+
+		mergedPomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+
+		gitFlow.tag(mergedPomVersion, "[GitFlow::finish-hotfix] Create tag " + mergedPomVersion);
+		gitFlow.pushAll();
+		gitFlow.checkoutBranchForced(DEVELOP);
+		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteBranch(getBranchName());
+		gitFlow.deleteLocalBranch(getBranchName());
+		gitFlow.pushAll();
 
 		/**
 		 * TODO
-		 * Deletar o branch remoto
+		 * Describrir como remover o branch remoto
 		 */
 	}
 
@@ -75,18 +66,12 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
 		try {
-			ReleaseDescriptor descriptor 	= gitFlow.buildReleaseDescriptor();
-			ReleaseEnvironment environment 	= gitFlow.buildDefaultReleaseEnvironment();
-
-			descriptor.setDefaultDevelopmentVersion(getProject().getVersion());
-
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			getReleaseManager().rollback(descriptor, environment, buildMavenProjects());
 			gitFlow.reset(MASTER);
 			gitFlow.checkoutBranchForced(MASTER);
-			if (lastTag != null) {
-				gitFlow.deleteTag(lastTag.getName());
+			if (mergedPomVersion != null) {
+				gitFlow.deleteTag(mergedPomVersion);
 			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
