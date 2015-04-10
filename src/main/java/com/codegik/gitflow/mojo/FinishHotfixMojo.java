@@ -52,7 +52,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		gitFlow.pushAll();
 		gitFlow.checkoutBranchForced(DEVELOP);
 		gitFlow.merge(mergeGitFlow);
-		gitFlow.deleteBranch(getBranchName());
+		gitFlow.deleteRemoteBranch(getBranchName());
 		gitFlow.deleteLocalBranch(getBranchName());
 		gitFlow.pushAll();
 

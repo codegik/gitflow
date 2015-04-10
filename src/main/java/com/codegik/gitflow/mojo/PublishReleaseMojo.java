@@ -9,6 +9,7 @@ import org.eclipse.jgit.merge.MergeStrategy;
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.MergeGitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -26,12 +27,11 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		gitFlow.checkoutBranchForced(DEVELOP);
+		// Busca ultima tag da release
+		Ref tagRef = gitFlow.findLasTag(getVersion());
 
-		// Gettting last tag
-		Ref tagRef = gitFlow.findLasTag();
-
-		gitFlow.checkoutBranchForced(MASTER);
+		// Realiza o merge da tag para o master (using theirs)
+		gitFlow.checkoutBranch(MASTER);
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 		mergeGitFlow.setBranchName(MASTER);
@@ -40,9 +40,12 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
 		gitFlow.push("Pushing merge");
-		gitFlow.deleteBranch(getVersion(), BranchType.feature);
-		gitFlow.deleteBranch(getVersion(), BranchType.bugfix);
-		gitFlow.deleteBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
+
+		// Remove os branches de feature, bugfix e o branch da release
+		gitFlow.deleteRemoteBranch(getVersion(), BranchType.feature);
+		gitFlow.deleteRemoteBranch(getVersion(), BranchType.bugfix);
+		gitFlow.deleteRemoteBranch(BranchUtil.buildReleaseBranchName(getVersion()));
+		gitFlow.pushAll();
 	}
 
 

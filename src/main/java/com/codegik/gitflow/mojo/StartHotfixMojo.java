@@ -6,6 +6,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -26,7 +27,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("You must be on branch master for execute this goal!");
 		}
 
-		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
+		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
 
 		gitFlow.createBranch(getBranchName());
 
@@ -47,7 +48,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 			getLog().info("Rollbacking all changes");
 			gitFlow.reset(MASTER);
 			gitFlow.checkoutBranchForced(MASTER);
-			gitFlow.deleteLocalBranch(getBranchName());
+			gitFlow.deleteRemoteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
 	}

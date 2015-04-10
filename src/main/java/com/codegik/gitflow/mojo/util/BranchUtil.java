@@ -1,6 +1,7 @@
 package com.codegik.gitflow.mojo.util;
 
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
+import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_HOTFIX;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
 
@@ -8,10 +9,17 @@ import org.eclipse.jgit.lib.Ref;
 
 
 public class BranchUtil {
+	private static final String[] replaces = new String[]{"refs/tags/", "refs/heads/", "refs/remotes/origin/"};
+	private static final String REMOTE_PREFIX = "refs/heads/";
+
 
 	public static String getSimpleBranchName(Ref ref) {
+		return replaceAll(ref);
+	}
+
+
+	public static String replaceAll(Ref ref) {
 		String result = ref.getName();
-		String[] replaces = new String[]{"refs/tags/", "refs/heads/", "refs/remotes/origin/"};
 
 		for (String replace : replaces) {
 			result = result.replace(replace, "");
@@ -28,5 +36,15 @@ public class BranchUtil {
 
 	public static String buildReleaseBranchName(String version) {
 		return PREFIX_RELEASE + SEPARATOR + version;
+	}
+
+
+	public static String buildHotfixBranchName(String version) {
+		return PREFIX_HOTFIX + SEPARATOR + version;
+	}
+
+
+	public static String buildRemoteBranchName(Ref ref) {
+		return REMOTE_PREFIX + replaceAll(ref);
 	}
 }

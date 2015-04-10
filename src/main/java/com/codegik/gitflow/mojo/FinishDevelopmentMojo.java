@@ -50,7 +50,7 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		gitFlow.push("Pushing merge");
 
 		if (deleteBranchAfter) {
-			gitFlow.deleteBranch(getBranchName());
+			gitFlow.deleteRemoteBranch(getBranchName());
 		}
 	}
 

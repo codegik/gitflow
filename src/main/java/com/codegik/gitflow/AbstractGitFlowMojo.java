@@ -36,9 +36,9 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	protected static final String MASTER = "master";
 	protected static final String DEVELOP = "develop";
-	protected static final String PREFIX_HOTFIX = "hotfix";
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".0";
+	public static final String PREFIX_HOTFIX = "hotfix";
 	public static final String PREFIX_TAG = "refs/tags";
 	public static final String PREFIX_RELEASE = "release";
 	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");

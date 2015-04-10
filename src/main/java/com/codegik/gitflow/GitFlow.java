@@ -33,9 +33,11 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 public class GitFlow {
@@ -44,6 +46,7 @@ public class GitFlow {
 	private String username;
 	private String password;
 	private File repository;
+	private CredentialsProvider credentialsProvider;
 
 
 	public GitFlow(Log log, String username, String passwd) {
@@ -56,6 +59,10 @@ public class GitFlow {
 		this.username 	= username;
 		this.password 	= passwd;
 		this.repository = repository;
+
+		if (username != null && passwd != null) {
+			credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+		}
 	}
 
 
@@ -149,12 +156,25 @@ public class GitFlow {
 	}
 
 
+	public Iterable<PushResult> deleteRemoteBranch(Ref branchRef) throws Exception {
+		String simpleName = BranchUtil.buildRemoteBranchName(branchRef);
+		RefSpec refSpec = new RefSpec().setSource(null).setDestination(simpleName);
+		getGit().branchDelete().setForce(true).setBranchNames(simpleName).call();
+
+		if (credentialsProvider != null) {
+			return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().push().setRefSpecs(refSpec).setRemote("origin").call();
+	}
+
+
 	public List<String> deleteBranch(Ref branchRef) throws Exception {
 		return getGit().branchDelete().setForce(true).setBranchNames(branchRef.getName()).call();
 	}
 
 
-	public List<String> deleteBranch(String branchName) throws Exception {
+	public Iterable<PushResult> deleteRemoteBranch(String branchName) throws Exception {
 		getLog().info("Deleting branch " + branchName);
 		Ref branchRef = findBranch(branchName);
 
@@ -162,7 +182,7 @@ public class GitFlow {
 			throw buildMojoException("Branch " + branchName + " not found");
 		}
 
-		return deleteBranch(branchRef);
+		return deleteRemoteBranch(branchRef);
 	}
 
 
@@ -178,26 +198,29 @@ public class GitFlow {
 	}
 
 
-	public List<String> deleteBranch(String version, BranchType branchType) throws Exception {
+	public void deleteRemoteBranch(String version, BranchType branchType) throws Exception {
 		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
 
-		List<String> result = new ArrayList<String>();
-		String release		= branchType.toString() + SEPARATOR + version;
+		String release = branchType.toString() + SEPARATOR + version;
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
 			if (b.getName().contains(release)) {
-				result.addAll(deleteBranch(b));
+				deleteRemoteBranch(b);
 				getLog().info(" > Deleted " + b.getName());
 			}
 		}
-
-		return result;
 	}
 
 
-	public List<String> deleteTag(String tagName) throws Exception {
+	public Iterable<PushResult> deleteTag(String tagName) throws Exception {
 		getLog().info("Deleting tag " + tagName);
-		return getGit().tagDelete().setTags(tagName).call();
+		RefSpec refSpec = new RefSpec().setSource(null).setDestination(tagName);
+
+		if (credentialsProvider != null) {
+			return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").call();
 	}
 
 
@@ -257,9 +280,7 @@ public class GitFlow {
 	public Iterable<PushResult> push(String logMessage) throws Exception {
 		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
 
-		if (username != null && password != null) {
-	        CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
-//	        return getGit().push().setPushTags().setPushAll().setCredentialsProvider(credentialsProvider).call();
+		if (credentialsProvider != null) {
 	        return getGit().push().setCredentialsProvider(credentialsProvider).call();
 		}
 
@@ -270,8 +291,7 @@ public class GitFlow {
 	public Iterable<PushResult> pushAll() throws Exception {
 		getLog().info("Pushing all");
 
-		if (username != null && password != null) {
-			CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+		if (credentialsProvider != null) {
 	        return getGit().push().setPushTags().setPushAll().setCredentialsProvider(credentialsProvider).call();
 		}
 
@@ -282,7 +302,7 @@ public class GitFlow {
 	public Ref findBranch(String branch) throws Exception {
 		getLog().info("Looking for branch " + branch);
 
-		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
+		for (Ref b : getGit().branchList().setListMode(ListMode.REMOTE).call()) {
 			if (branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
 				return b;
 			}
