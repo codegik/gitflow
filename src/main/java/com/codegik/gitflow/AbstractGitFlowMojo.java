@@ -36,11 +36,11 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	protected static final String MASTER = "master";
 	protected static final String DEVELOP = "develop";
-	protected static final String PREFIX_RELEASE = "release";
 	protected static final String PREFIX_HOTFIX = "hotfix";
-	protected static final String PREFIX_TAG = "refs/tags";
 	protected static final String SUFFIX = "-SNAPSHOT";
 	protected static final String SUFFIX_RELEASE = ".0";
+	public static final String PREFIX_TAG = "refs/tags";
+	public static final String PREFIX_RELEASE = "release";
 	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
 	public static final Pattern POM_SNAPSHOT_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,2})(-SNAPSHOT)");
 	public static final Pattern RELEASE_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})");

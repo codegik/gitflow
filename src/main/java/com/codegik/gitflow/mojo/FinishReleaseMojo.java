@@ -10,6 +10,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.MergeGitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -20,7 +21,7 @@ import com.codegik.gitflow.MergeGitFlow;
  */
 @Mojo(name = "finish-release", aggregator = true)
 public class FinishReleaseMojo extends AbstractGitFlowMojo {
-	private String mergedPomVersion;
+	private String pomVersion;
 	private RevCommit revertCommit;
 
     @Parameter( property = "version", required = true )
@@ -32,41 +33,56 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		Ref releaseRef = gitFlow.validadeReleaseVersion(getVersion());
 
 		if (!gitFlow.getBranch().equals(DEVELOP)) {
-			throw buildMojoException("You must be on branch develop for execute this goal!");
+			throw buildMojoException("You must be on branch develop for execute this goal! ");
 		}
 
-		mergedPomVersion = getProject().getVersion();
+		pomVersion = getProject().getVersion();
 
-		/**
-		 * Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
-		 */
+		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
 		Ref lastTag = gitFlow.findLasTag(getVersion());
 		if (lastTag != null) {
-			String newVersion = gitFlow.incrementVersion(lastTag);
+			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) > 0) {
+				String newVersion = gitFlow.incrementVersion(lastTag);
 
-			updatePomVersion(newVersion);
+				updatePomVersion(newVersion);
 
-			getLog().info("Commiting changed files");
-			revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
-			gitFlow.push("Pushing commit");
-			mergedPomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+				getLog().info("Commiting changed files");
+				revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
+				gitFlow.push("Pushing commit");
+				pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+			}
 		}
 
+		// Realiza o merge da release para o develop
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 		mergeGitFlow.setBranchName(DEVELOP);
 		mergeGitFlow.setErrorMessage("finish-release -Dversion=" + getVersion());
 		mergeGitFlow.setTargetRef(releaseRef);
-		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(mergedPomVersion, getVersion()));
+		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(pomVersion, getVersion()));
 
 		gitFlow.merge(mergeGitFlow);
 
-		mergedPomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+		// Recarrega a versao do pom pois provavelmente deve ter alterada depois do merge
+		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
-		gitFlow.tag(mergedPomVersion, "[GitFlow::finish-release] Create tag " + mergedPomVersion);
-		gitFlow.pushAll();
-
+		// Cria a tag da release com base no develop
+		Ref newTag = gitFlow.tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::finishi-release] Finish release branch " + getVersion());
+		gitFlow.pushAll();
+
+		// Incrementa a versao baseado na tag
+		String newVersion = gitFlow.incrementVersion(newTag);
+		getLog().info("Bumping version of files to " + newVersion);
+
+		// Volta para o branch da release
+		gitFlow.checkoutBranch(BranchUtil.getSimpleBranchName(releaseRef));
+
+		// Atualiza a versao incrementada dos poms
+		updatePomVersion(newVersion);
+		getLog().info("Commiting changed files");
+		gitFlow.commit("[GitFlow::finishi-release] Bumped version number to " + newVersion);
 		gitFlow.pushAll();
 	}
 
@@ -84,8 +100,9 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 				 gitFlow.push("Pushing revert commit");
 			}
 
-			if (mergedPomVersion != null) {
-				gitFlow.deleteTag(mergedPomVersion);
+			if (pomVersion != null) {
+				gitFlow.deleteTag(pomVersion);
+				gitFlow.pushAll();
 			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);

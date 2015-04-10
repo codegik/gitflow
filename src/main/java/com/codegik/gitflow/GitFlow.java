@@ -22,6 +22,7 @@ import org.apache.maven.shared.release.config.ReleaseDescriptor;
 import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
 import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
+import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeResult;
@@ -58,7 +59,11 @@ public class GitFlow {
 	}
 
 
-	protected Git getGit() throws Exception {
+	public void setGit(Git git) {
+		this.git = git;
+	}
+
+	public Git getGit() throws Exception {
 		if (git == null) {
 			git = Git.open(repository);
 		}
@@ -67,10 +72,15 @@ public class GitFlow {
 	}
 
 
-	public Ref validadeReleaseVersion(String version) throws Exception {
+	public void validadePatternReleaseVersion(String version) throws Exception {
 		if (!RELEASE_VERSION_PATTERN.matcher(version).find()) {
 			throw buildMojoException("The version pattern is " + RELEASE_VERSION_PATTERN.toString() + "  EX: 1.3");
 		}
+	}
+
+
+	public Ref validadeReleaseVersion(String version) throws Exception {
+		validadePatternReleaseVersion(version);
 
 		Ref ref = findBranch(PREFIX_RELEASE + SEPARATOR + version);
 
@@ -205,7 +215,13 @@ public class GitFlow {
 
 	public Ref checkoutBranch(String branchName) throws Exception {
 		getLog().info("Checkout into " + branchName);
-		return getGit().checkout().setCreateBranch(false).setName(branchName).call();
+		Boolean branchExists = getGit().getRepository().getRef(branchName) != null;
+
+		if (!branchExists) {
+			getGit().branchCreate().setName(branchName).setUpstreamMode(SetupUpstreamMode.TRACK).setStartPoint("origin/" + branchName).call();
+		}
+
+		return getGit().checkout().setName(branchName).call();
 	}
 
 
@@ -298,11 +314,13 @@ public class GitFlow {
 		List<Ref> tags = getGit().tagList().call();
 
 		if (releaseVersion != null) {
-			for (int i = 0; i < tags.size(); i++) {
+			int i = 0;
+			while (i < tags.size()) {
 				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion)) {
 					tags.remove(i);
-					i = 0;
+					continue;
 				}
+				i++;
 			}
 		}
 
@@ -455,13 +473,45 @@ public class GitFlow {
 	}
 
 
+	/**
+	 * Returns
+	 * The value 0 if firstVersion is equal to the secondVersion
+	 * A value less than 0 if firstVersion is numerically less than the secondVersion
+	 * A value greater than 0 if firstVersion is numerically greater than the secondVersion
+	 *
+	 * @param firstVersion
+	 * @param secondVersion
+	 */
+	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
+		Matcher matcherFirstVersion 	= TAG_VERSION_PATTERN.matcher(firstVersion);
+		Matcher matcherSecondVersion 	= TAG_VERSION_PATTERN.matcher(secondVersion);
+
+		if (!matcherFirstVersion.find()) {
+			throw buildMojoException("The firstVersion " + firstVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+		}
+
+		if (!matcherSecondVersion.find()) {
+			throw buildMojoException("The secondVersion " + secondVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+		}
+
+		Integer intFirstVersion 	= new Integer(matcherFirstVersion.group(2));
+		Integer intSecondVersion 	= new Integer(matcherSecondVersion.group(2));
+
+		if (intFirstVersion == intSecondVersion) {
+			intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
+			intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
+		}
+
+		return intFirstVersion.compareTo(intSecondVersion);
+	}
+
+
 	public RevCommit revertCommit(RevCommit commit) throws Exception {
 		return getGit().revert().include(commit).setStrategy(MergeStrategy.OURS).call();
 	}
 
 
 	public GitFlow cloneRepo(MavenProject mavenProject) throws Exception {
-		mavenProject.getScm();
 		File outputDir = new File(mavenProject.getBuild().getOutputDirectory());
 		File checkoutkdir = new File(outputDir, "gitflow-checkout");
 
@@ -471,10 +521,9 @@ public class GitFlow {
 
 		GitFlow gitFlow = new GitFlow(getLog(), username, password, checkoutkdir);
 
-		/**
-		 * TODO
-		 * clonar o repositorio
-		 */
+		UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(username, password);
+		Git git = Git.cloneRepository().setURI(mavenProject.getScm().getUrl()).setDirectory(checkoutkdir).setCredentialsProvider(user).call();
+		gitFlow.setGit(git);
 
 		return gitFlow;
 	}
