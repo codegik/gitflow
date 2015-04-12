@@ -6,10 +6,12 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.mojo.versions.api.PomHelper;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.MergeGitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -19,11 +21,11 @@ import com.codegik.gitflow.MergeGitFlow;
  */
 @Mojo(name = "finish-hotfix", aggregator = true)
 public class FinishHotfixMojo extends AbstractGitFlowMojo {
+	private String pomVersion;
+	private RevCommit revertCommit;
 
 	@Parameter( property = "branchName", required = true )
     private String branchName;
-
-	private String mergedPomVersion;
 
 
 	@Override
@@ -34,7 +36,24 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("You must be on branch master for execute this goal!");
 		}
 
-		setBranchName(PREFIX_HOTFIX + SEPARATOR + getBranchName());
+		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
+
+		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+
+		// Buscar a ultima tag do master e incrementa a versao pois pode existir uma release entregue anteriormente
+		Ref lastTag = gitFlow.findLasTag();
+		if (lastTag != null) {
+			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) < 0) {
+				String newVersion = gitFlow.incrementVersion(lastTag);
+
+				updatePomVersion(newVersion);
+
+				getLog().info("Commiting changed files");
+				revertCommit = gitFlow.commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
+				gitFlow.push("Pushing commit");
+			}
+		}
 
 		Ref hotfixRef = gitFlow.findBranch(getBranchName());
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
@@ -42,24 +61,19 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setBranchName(MASTER);
 		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + simpleName);
 		mergeGitFlow.setTargetRef(hotfixRef);
-		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
+		mergeGitFlow.setIgnoringFilesStage(Stage.BASE);
 
 		gitFlow.merge(mergeGitFlow);
 
-		mergedPomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
+		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
-		gitFlow.tag(mergedPomVersion, "[GitFlow::finish-hotfix] Create tag " + mergedPomVersion);
+		gitFlow.tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
 		gitFlow.pushAll();
 		gitFlow.checkoutBranchForced(DEVELOP);
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteRemoteBranch(getBranchName());
 		gitFlow.deleteLocalBranch(getBranchName());
 		gitFlow.pushAll();
-
-		/**
-		 * TODO
-		 * Describrir como remover o branch remoto
-		 */
 	}
 
 
@@ -70,8 +84,14 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			gitFlow.reset(MASTER);
 			gitFlow.checkoutBranchForced(MASTER);
-			if (mergedPomVersion != null) {
-				gitFlow.deleteTag(mergedPomVersion);
+
+			if (revertCommit != null) {
+				 gitFlow.revertCommit(revertCommit);
+				 gitFlow.push("Pushing revert commit");
+			}
+
+			if (pomVersion != null) {
+				gitFlow.deleteTag(pomVersion);
 			}
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);
