@@ -32,10 +32,6 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 	public void run(GitFlow gitFlow) throws Exception {
 		String simpleName = getBranchName();
 
-//		if (!gitFlow.getBranch().equals(MASTER)) {
-//			throw buildMojoException("You must be on branch master for execute this goal!");
-//		}
-
 		Ref hotfixRef = gitFlow.checkoutBranch(BranchUtil.buildHotfixBranchName(simpleName));
 
 		setBranchName(BranchUtil.buildHotfixBranchName(simpleName));
@@ -57,10 +53,8 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			}
 		}
 
-		/**
-		 * TODO
-		 * Erro ao fazer o merge pois estava referenciando ao branch antigo antes de ser incrementado
-		 */
+		gitFlow.reset(MASTER);
+		gitFlow.checkoutBranchForced(MASTER);
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 
