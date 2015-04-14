@@ -26,6 +26,7 @@ import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
@@ -272,6 +273,15 @@ public class GitFlow {
 	}
 
 
+	public PullResult pull() throws Exception {
+		if (credentialsProvider != null) {
+			return getGit().pull().setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().pull().call();
+	}
+
+
 	public Iterable<PushResult> push() throws Exception {
 		return push(null);
 	}
@@ -281,10 +291,10 @@ public class GitFlow {
 		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
 
 		if (credentialsProvider != null) {
-	        return getGit().push().setCredentialsProvider(credentialsProvider).call();
+	        return getGit().push().setForce(true).setCredentialsProvider(credentialsProvider).call();
 		}
 
-		return getGit().push().call();
+		return getGit().push().setForce(true).call();
 	}
 
 
@@ -517,7 +527,7 @@ public class GitFlow {
 		Integer intFirstVersion 	= new Integer(matcherFirstVersion.group(2));
 		Integer intSecondVersion 	= new Integer(matcherSecondVersion.group(2));
 
-		if (intFirstVersion == intSecondVersion) {
+		if (intFirstVersion.compareTo(intSecondVersion) == 0) {
 			intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
 			intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
 		}

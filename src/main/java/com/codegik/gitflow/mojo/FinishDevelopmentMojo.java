@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
@@ -45,6 +46,7 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setBranchName(releaseBranch);
 		mergeGitFlow.setErrorMessage("finish-development -DfullBranchName=" + getBranchName());
 		mergeGitFlow.setTargetRef(ref);
+		mergeGitFlow.setIgnoringFilesStage(Stage.OURS);
 
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.push("Pushing merge");

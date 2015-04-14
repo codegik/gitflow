@@ -27,6 +27,8 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
+		validadeBefore(gitFlow);
+
 		// Busca ultima tag da release
 		Ref tagRef = gitFlow.findLasTag(getVersion());
 
@@ -46,6 +48,11 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		gitFlow.deleteRemoteBranch(getVersion(), BranchType.bugfix);
 		gitFlow.deleteRemoteBranch(BranchUtil.buildReleaseBranchName(getVersion()));
 		gitFlow.pushAll();
+	}
+
+
+	private void validadeBefore(GitFlow gitFlow) throws Exception {
+		gitFlow.validadePatternReleaseVersion(getVersion());
 	}
 
 

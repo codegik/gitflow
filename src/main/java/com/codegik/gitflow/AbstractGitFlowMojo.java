@@ -34,6 +34,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	public enum BranchType { feature, bugfix }
 
+	protected static final String ORIGIN = "origin";
 	protected static final String MASTER = "master";
 	protected static final String DEVELOP = "develop";
 	protected static final String SUFFIX = "-SNAPSHOT";

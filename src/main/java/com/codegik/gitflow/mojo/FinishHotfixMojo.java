@@ -30,6 +30,8 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
+		validadeBefore(gitFlow);
+
 		String simpleName = getBranchName();
 
 		Ref hotfixRef = gitFlow.checkoutBranch(BranchUtil.buildHotfixBranchName(simpleName));
@@ -42,7 +44,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		Ref lastTag = gitFlow.findLasTag();
 		if (lastTag != null) {
 			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
-			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) < 0) {
+			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 				String newVersion = gitFlow.incrementVersion(lastTag);
 
 				updatePomVersion(newVersion);
@@ -53,15 +55,18 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			}
 		}
 
-		gitFlow.reset(MASTER);
 		gitFlow.checkoutBranchForced(MASTER);
+		gitFlow.reset(ORIGIN + SEPARATOR + MASTER);
+		gitFlow.deleteLocalBranch(getBranchName());
+
+		hotfixRef = gitFlow.findBranch(BranchUtil.buildHotfixBranchName(simpleName));
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 
 		mergeGitFlow.setBranchName(MASTER);
 		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + simpleName);
 		mergeGitFlow.setTargetRef(hotfixRef);
-		mergeGitFlow.setIgnoringFilesStage(Stage.BASE);
+		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
 
 		gitFlow.merge(mergeGitFlow);
 
@@ -72,8 +77,14 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		gitFlow.checkoutBranchForced(DEVELOP);
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteRemoteBranch(getBranchName());
-		gitFlow.deleteLocalBranch(getBranchName());
 		gitFlow.pushAll();
+	}
+
+
+	private void validadeBefore(GitFlow gitFlow) throws Exception {
+		if (gitFlow.findBranch(getBranchName()) != null) {
+			throw buildMojoException("The branch " + getBranchName() + " dosen't exists!");
+		}
 	}
 
 
