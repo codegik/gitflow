@@ -27,7 +27,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
 
-		gitFlow.checkoutBranch(getBranchName());
+		gitFlow.createBranch(getBranchName());
 
 		String newVersion = gitFlow.incrementVersion(getProject().getVersion());
 

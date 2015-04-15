@@ -269,6 +269,7 @@ public class GitFlow {
 
 
 	public RevCommit commit(String message) throws Exception {
+		getGit().add().addFilepattern(".").call();
 		return getGit().commit().setAll(true).setMessage(message).call();
 	}
 

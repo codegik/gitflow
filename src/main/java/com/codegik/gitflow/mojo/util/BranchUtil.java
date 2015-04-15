@@ -1,11 +1,13 @@
 package com.codegik.gitflow.mojo.util;
 
-import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_HOTFIX;
+import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
 
 import org.eclipse.jgit.lib.Ref;
+
+import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
 
 
 public class BranchUtil {
@@ -31,6 +33,11 @@ public class BranchUtil {
 
 	public static String getVersionFromTag(Ref tag) {
 		return tag.getName().replace(PREFIX_TAG + SEPARATOR, "");
+	}
+
+
+	public static String buildDevBranchName(BranchType branchType, String version, String branchName) {
+		return branchType.toString() + SEPARATOR + version + SEPARATOR + branchName;
 	}
 
 

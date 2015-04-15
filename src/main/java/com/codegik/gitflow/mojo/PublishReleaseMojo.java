@@ -40,6 +40,12 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setErrorMessage("publish-release -Dversion=" + getVersion());
 		mergeGitFlow.setTargetRef(tagRef);
 
+		/**
+		 * TODO
+		 * Como resolver a situacao que ocorre quando um hotfix eh aberto e entregue para producao
+		 * durante o periodo de homologacao de uma release?
+		 * Solucao: replicar as correcoes de hotfix para a versao que esta em homologacao
+		 */
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
 		gitFlow.push("Pushing merge");
 

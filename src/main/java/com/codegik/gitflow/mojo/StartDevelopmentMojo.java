@@ -6,6 +6,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -31,12 +32,14 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 	public void run(GitFlow gitFlow) throws Exception {
 		gitFlow.validadeReleaseVersion(getVersion());
 
-		setBranchName(getBranchType().toString() + SEPARATOR + getVersion() + SEPARATOR + getBranchName());
+		setBranchName(BranchUtil.buildDevBranchName(getBranchType(), getVersion(), getBranchName()));
 
-		gitFlow.checkoutBranch(PREFIX_RELEASE + SEPARATOR + getVersion());
+		if (gitFlow.findBranch(getBranchName()) != null) {
+			throw buildMojoException("The branch " + getBranchName() + " already exists!");
+		}
 
+		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(getVersion()));
 		gitFlow.createBranch(getBranchName());
-
 		gitFlow.push("Pushing branch " + getBranchName());
 	}
 
