@@ -25,8 +25,13 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 	private String version;
 
 
-	@Override
-	public void run(GitFlow gitFlow) throws Exception {
+    @Override
+    public void run(GitFlow gitFlow) throws Exception {
+    	updatePomVersion("1.1.1");
+    }
+
+
+	public void run3(GitFlow gitFlow) throws Exception {
 		if (!gitFlow.getBranch().equals(DEVELOP)) {
 			throw buildMojoException("You must be on branch develop for execute this goal! ");
 		}
