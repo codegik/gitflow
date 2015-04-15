@@ -90,7 +90,7 @@ public class GitFlow {
 	public Ref validadeReleaseVersion(String version) throws Exception {
 		validadePatternReleaseVersion(version);
 
-		Ref ref = findBranch(PREFIX_RELEASE + SEPARATOR + version);
+		Ref ref = findBranch(BranchUtil.buildReleaseBranchName(version));
 
 		if (ref == null) {
 			throw buildMojoException("The version " + PREFIX_RELEASE + SEPARATOR + version + "  not foudn");
