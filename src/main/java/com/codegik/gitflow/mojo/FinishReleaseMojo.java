@@ -39,13 +39,13 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		pomVersion = getProject().getVersion();
 
 		// Verifica se existe uma release mais atualizada do que a informada por parametro
-		String lastTagVer = BranchUtil.getVersionFromTag(gitFlow.findLasTag());
+		String lastTagVer = BranchUtil.getVersionFromTag(gitFlow.findLastTag());
 		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 			throw buildMojoException("The release " + getVersion() + " cannot be finished because there is a newer release " + lastTagVer + "!");
 		}
 
 		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
-		Ref lastTag = gitFlow.findLasTag(getVersion());
+		Ref lastTag = gitFlow.findLastTag(getVersion());
 		if (lastTag != null) {
 			getLog().info("Checking for most current tag");
 			lastTagVer = BranchUtil.getVersionFromTag(lastTag);
@@ -78,7 +78,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		// Cria a tag da release com base no develop
 		Ref newTag = gitFlow.tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
 		getLog().info("Commiting changed files");
-		gitFlow.commit("[GitFlow::finishi-release] Finish release branch " + getVersion());
+		gitFlow.commit("[GitFlow::finish-release] Finish release branch " + getVersion());
 		gitFlow.pushAll();
 
 		// Incrementa a versao baseado na tag
@@ -91,7 +91,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		// Atualiza a versao incrementada dos poms
 		updatePomVersion(newVersion);
 		getLog().info("Commiting changed files");
-		gitFlow.commit("[GitFlow::finishi-release] Bumped version number to " + newVersion);
+		gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
 		gitFlow.pushAll();
 	}
 

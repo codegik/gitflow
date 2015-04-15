@@ -57,7 +57,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("The release " + getVersion() + " already exists!");
 		}
 
-		if (gitFlow.findLasTag(getVersion()) != null) {
+		if (gitFlow.findLastTag(getVersion()) != null) {
 			throw buildMojoException("The release " + getVersion() + " already existed!");
 		}
 

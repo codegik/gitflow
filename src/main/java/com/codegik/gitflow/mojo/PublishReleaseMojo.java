@@ -30,7 +30,7 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		validadeBefore(gitFlow);
 
 		// Busca ultima tag da release
-		Ref tagRef = gitFlow.findLasTag(getVersion());
+		Ref tagRef = gitFlow.findLastTag(getVersion());
 
 		// Realiza o merge da tag para o master (using theirs)
 		gitFlow.checkoutBranch(MASTER);

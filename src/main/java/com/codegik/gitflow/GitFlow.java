@@ -336,11 +336,11 @@ public class GitFlow {
 	}
 
 
-	public Ref findLasTag() throws Exception {
-		return findLasTag(null);
+	public Ref findLastTag() throws Exception {
+		return findLastTag(null);
 	}
 
-	public Ref findLasTag(String releaseVersion) throws Exception {
+	public Ref findLastTag(String releaseVersion) throws Exception {
 		final RevWalk walk = new RevWalk(getGit().getRepository());
 		List<Ref> tags = getGit().tagList().call();
 
@@ -463,7 +463,7 @@ public class GitFlow {
 
 		if (matcher.find()) {
 			String releaseVersion 	= String.format("%s.%s", matcher.group(1), matcher.group(2));
-			Ref lastTag 			= findLasTag(releaseVersion);
+			Ref lastTag 			= findLastTag(releaseVersion);
 			String newVersion 		= null;
 			Integer increment 		= null;
 
@@ -485,6 +485,15 @@ public class GitFlow {
 	}
 
 
+	/**
+	 * Returns
+	 * The value 0 if currentVersion is equal to the releaseBranchVersion
+	 * A value less than 0 if currentVersion is numerically less than the releaseBranchVersion
+	 * A value greater than 0 if currentVersion is numerically greater than the releaseBranchVersion
+	 *
+	 * @param currentVersion
+	 * @param releaseBranchVersion
+	 */
 	public Stage defineStageForMerge(String currentVersion, String releaseBranchVersion) throws Exception {
 		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
 		Matcher matcherReleaseBranchVersion = RELEASE_VERSION_PATTERN.matcher(releaseBranchVersion);

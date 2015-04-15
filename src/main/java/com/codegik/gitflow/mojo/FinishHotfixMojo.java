@@ -41,7 +41,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Buscar a ultima tag do master e incrementa a versao pois pode existir uma release entregue anteriormente
-		Ref lastTag = gitFlow.findLasTag();
+		Ref lastTag = gitFlow.findLastTag();
 		if (lastTag != null) {
 			getLog().info("Checking for most current tag");
 			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
