@@ -32,8 +32,10 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 
 
 	public void run3(GitFlow gitFlow) throws Exception {
-		if (!gitFlow.getBranch().equals(DEVELOP)) {
-			throw buildMojoException("You must be on branch develop for execute this goal! ");
+		String releaseBranch = BranchUtil.buildReleaseBranchName(getVersion());
+
+		if (!gitFlow.getBranch().equals(releaseBranch)) {
+			throw buildMojoException("You must be on branch " + releaseBranch + " for execute this goal! ");
 		}
 
 		Ref releaseRef 		= gitFlow.validadeReleaseVersion(getVersion());
