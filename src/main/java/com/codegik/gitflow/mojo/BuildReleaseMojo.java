@@ -15,6 +15,7 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
 /**
  * Build release
  * Merge develop into release and create tag
+ * To execute this goal the current branch must be a relase (Ex: release/1.1)
  *
  * @author Inacio G Klassmann
  */
@@ -25,13 +26,7 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 	private String version;
 
 
-    @Override
-    public void run(GitFlow gitFlow) throws Exception {
-    	updatePomVersion("1.1.1");
-    }
-
-
-	public void run3(GitFlow gitFlow) throws Exception {
+	public void run(GitFlow gitFlow) throws Exception {
 		String releaseBranch = BranchUtil.buildReleaseBranchName(getVersion());
 
 		if (!gitFlow.getBranch().equals(releaseBranch)) {

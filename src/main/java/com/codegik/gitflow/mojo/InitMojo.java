@@ -14,6 +14,7 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
  * Create branch develop
  * Set first version on file (1.0.0)
  * Create first tag (1.0.0)
+ * To execute this goal the current branch must be master
  *
  * @author Inacio G Klassmann
  */

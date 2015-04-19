@@ -12,6 +12,7 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
 
 /**
  * Start new release branch from develop
+ * To execute this goal the current branch must be develop
  *
  * @author Inacio G Klassmann
  */

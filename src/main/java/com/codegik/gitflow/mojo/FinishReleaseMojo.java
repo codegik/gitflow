@@ -16,6 +16,7 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
 /**
  * Finish release
  * Increment version, merge release into develop and tag develop
+ * To execute this goal the current branch must be develop
  *
  * @author Inacio G Klassmann
  */
