@@ -50,6 +50,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 				String newVersion = gitFlow.incrementVersion(lastTag);
 				updatePomVersion(newVersion);
+				compileProject("clean install", getSkipTests());
 
 				getLog().info("Commiting changed files");
 				revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
@@ -66,6 +67,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(pomVersion, getVersion()));
 
 		gitFlow.merge(mergeGitFlow);
+		compileProject("clean install", getSkipTests());
 
 		// Recarrega a versao do pom pois provavelmente deve ter alterada depois do merge
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
@@ -76,15 +78,13 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		gitFlow.commit("[GitFlow::finish-release] Finish release branch " + getVersion());
 		gitFlow.pushAll();
 
-		// Incrementa a versao baseado na tag
-		String newVersion = gitFlow.incrementVersion(newTag);
-		getLog().info("Bumping version of files to " + newVersion);
-
 		// Volta para o branch da release
 		gitFlow.checkoutBranch(BranchUtil.getSimpleBranchName(releaseRef));
 
-		// Atualiza a versao incrementada dos poms
+		// Incrementa a versao baseado na tag
+		String newVersion = gitFlow.incrementVersion(newTag);
 		updatePomVersion(newVersion);
+
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
 		gitFlow.pushAll();

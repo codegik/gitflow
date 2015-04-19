@@ -47,6 +47,7 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		 * Solucao: replicar as correcoes de hotfix para a versao que esta em homologacao
 		 */
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
+		compileProject("clean install", getSkipTests());
 		gitFlow.push("Pushing merge");
 
 		// Remove os branches de feature, bugfix e o branch da release

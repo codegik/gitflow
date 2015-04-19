@@ -52,6 +52,7 @@ public class InitMojo extends AbstractGitFlowMojo {
 			gitFlow.createBranch(DEVELOP);
 
 			updatePomVersion(newVersion);
+			compileProject("clean install", getSkipTests());
 
 			gitFlow.commit("[GitFlow::init] Bumped version number to " + newVersion);
 			gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
@@ -61,7 +62,9 @@ public class InitMojo extends AbstractGitFlowMojo {
 		}
 	}
 
+
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+		throw buildMojoException("ERROR", e);
 	}
 }

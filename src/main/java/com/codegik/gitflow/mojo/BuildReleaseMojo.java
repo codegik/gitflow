@@ -14,7 +14,7 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
 
 /**
  * Build release
- * Merge develop into release and create tag
+ * Merge develop into release and do not create tag
  * To execute this goal the current branch must be a relase (Ex: release/1.1)
  *
  * @author Inacio G Klassmann
@@ -48,22 +48,20 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(devPomVer, getVersion()));
 
 		gitFlow.merge(mergeGitFlow);
+		compileProject("clean install", getSkipTests());
 
 		// Recarrega a versao do pom
 		String pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Cria a tag da release com base na release
-		Ref newTag = gitFlow.tag(pomVersion, "[GitFlow::build-release] Create tag " + pomVersion);
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::build-release] Build release branch " + getVersion());
 		gitFlow.pushAll();
 
-		// Incrementa a versao baseado na tag
-		String newVersion = gitFlow.incrementVersion(newTag);
-		getLog().info("Bumping version of files to " + newVersion);
-
-		// Atualiza a versao incrementada dos poms
+		// Incrementa a versao baseado no pom
+		String newVersion = gitFlow.incrementVersion(pomVersion);
 		updatePomVersion(newVersion);
+
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::build-release] Bumped version number to " + newVersion);
 		gitFlow.pushAll();
