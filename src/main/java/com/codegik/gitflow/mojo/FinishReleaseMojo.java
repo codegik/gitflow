@@ -39,17 +39,11 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 		pomVersion = getProject().getVersion();
 
-		// Verifica se existe uma release mais atualizada do que a informada por parametro
-		String lastTagVer = BranchUtil.getVersionFromTag(gitFlow.findLastTag());
-		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) < 0) {
-			throw buildMojoException("The release " + getVersion() + " cannot be finished because there is a newer release " + lastTagVer + "!");
-		}
-
 		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
 		Ref lastTag = gitFlow.findLastTag(getVersion());
 		if (lastTag != null) {
 			getLog().info("Checking for most current tag");
-			lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
 			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) >= 0) {
 				getLog().info("Found newer " + lastTagVer);
