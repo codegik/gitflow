@@ -426,7 +426,7 @@ public class GitFlow {
 
 
 	public String incrementVersion(Ref lastTag) throws Exception {
-		return incrementVersion(lastTag.getName().replace(PREFIX_TAG + SEPARATOR, ""));
+		return incrementVersion(BranchUtil.getVersionFromTag(lastTag));
 	}
 
 

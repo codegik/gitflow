@@ -49,6 +49,7 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(Stage.OURS);
 
 		gitFlow.merge(mergeGitFlow);
+		compileProject("clean install", getSkipTests());
 		gitFlow.push("Pushing merge");
 
 		if (deleteBranchAfter) {

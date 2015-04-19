@@ -51,6 +51,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 				String newVersion = gitFlow.incrementVersion(lastTag);
 				updatePomVersion(newVersion);
+				compileProject("clean install", getSkipTests());
 
 				getLog().info("Commiting changed files");
 				revertCommit = gitFlow.commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
@@ -58,6 +59,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			}
 		}
 
+		// Checkout para o branch master para fazer o merge com o branch do hotfix
 		gitFlow.checkoutBranchForced(MASTER);
 		gitFlow.reset(ORIGIN + SEPARATOR + MASTER);
 		gitFlow.deleteLocalBranch(getBranchName());
@@ -72,6 +74,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
 
 		gitFlow.merge(mergeGitFlow);
+		compileProject("clean install", getSkipTests());
 
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 

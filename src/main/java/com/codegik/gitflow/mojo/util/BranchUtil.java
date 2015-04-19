@@ -4,6 +4,9 @@ import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_HOTFIX;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
+import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
+
+import java.util.regex.Matcher;
 
 import org.eclipse.jgit.lib.Ref;
 
@@ -28,6 +31,17 @@ public class BranchUtil {
 		}
 
 		return result;
+	}
+
+
+	public static String getReleaseFromVersion(String fullVersion) {
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(fullVersion);
+
+		if (matcher.find()) {
+			return String.format("%s.%s", matcher.group(1), matcher.group(2));
+		}
+
+		return null;
 	}
 
 

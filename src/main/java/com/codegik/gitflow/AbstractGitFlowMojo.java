@@ -19,6 +19,10 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.release.ReleaseResult;
+import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
+import org.apache.maven.shared.release.env.ReleaseEnvironment;
+import org.apache.maven.shared.release.exec.MavenExecutor;
 import org.codehaus.mojo.versions.api.PomHelper;
 import org.codehaus.mojo.versions.change.VersionChange;
 import org.codehaus.mojo.versions.change.VersionChanger;
@@ -50,11 +54,17 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     @Component
     private MavenProject project;
 
+    @Component
+    private MavenExecutor mavenExecutor;
+
     @Parameter( property = "password" )
     private String password;
 
     @Parameter( property = "username" )
     private String username;
+
+    @Parameter( property = "skipTests" )
+    private Boolean skipTests;
 
 
     public abstract void run(GitFlow gitFlow) throws Exception;
@@ -130,7 +140,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	@SuppressWarnings("rawtypes")
 	protected void updatePomVersion(String newVersion) throws Exception {
-		getLog().info("Updating pom version");
+		getLog().info("Bumping version of files to " + newVersion);
 
 		List<MavenProject> projects = buildMavenProjects();
 		List<VersionChange> changes = new ArrayList<VersionChange>();
@@ -182,6 +192,17 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	}
 
 
+	public ReleaseResult compileProject(String goals, Boolean skipTests) throws Exception {
+		getLog().info("Compiling project: " + goals + " -DskipTests=" + skipTests);
+		ReleaseResult releaseResult = new ReleaseResult();
+		ReleaseEnvironment releaseEnvironment = new DefaultReleaseEnvironment();
+
+		getMavenExecutor().executeGoals(getProject().getBasedir(), goals, releaseEnvironment, false, (skipTests ? " -DskipTests" : null), releaseResult);
+
+		return releaseResult;
+	}
+
+
 	public MavenProject getProject() {
 		return project;
 	}
@@ -206,6 +227,22 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public Boolean getSkipTests() {
+		return skipTests;
+	}
+
+	public void setSkipTests(Boolean skipTests) {
+		this.skipTests = skipTests;
+	}
+
+	public MavenExecutor getMavenExecutor() {
+		return mavenExecutor;
+	}
+
+	public void setMavenExecutor(MavenExecutor mavenExecutor) {
+		this.mavenExecutor = mavenExecutor;
 	}
 
 }

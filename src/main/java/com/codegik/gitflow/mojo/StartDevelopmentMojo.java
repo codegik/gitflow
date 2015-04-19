@@ -38,6 +38,8 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("The branch " + getBranchName() + " already exists!");
 		}
 
+		compileProject("clean install", getSkipTests());
+
 		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(getVersion()));
 		gitFlow.createBranch(getBranchName());
 		gitFlow.push("Pushing branch " + getBranchName());
