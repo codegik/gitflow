@@ -495,6 +495,7 @@ public class GitFlow {
 	 * @param secondVersion
 	 */
 	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
+		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + "?");
 		Matcher matcherFirstVersion 	= TAG_VERSION_PATTERN.matcher(firstVersion);
 		Matcher matcherSecondVersion 	= TAG_VERSION_PATTERN.matcher(secondVersion);
 
