@@ -130,26 +130,13 @@
 		</dependency>
 	</dependencies>
 
-	<distributionManagement>
-		<repository>
-			<id>releases</id>
-			<name>nexus-tools-poa</name>
-			<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/releases</url>
-		</repository>
-		<snapshotRepository>
-			<id>snapshots</id>
-			<name>nexus-tools-poa</name>
-			<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
-
 	<developers>
 		<developer>
-			<id>igklassmann</id>
+			<id>codegik</id>
 			<name>Inacio G Klassmann</name>
-			<email>inacio.klassmann@tools.com.br</email>
-			<organization>Tools</organization>
-			<organizationUrl>www.tools.com.br</organizationUrl>
+			<email>inaciosk8@gmail.com</email>
+			<organization>Codegik</organization>
+			<organizationUrl>www.codegik.com</organizationUrl>
 			<roles>
 				<role>Team Leader</role>
 				<role>Architect</role>
