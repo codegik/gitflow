@@ -41,7 +41,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 		// Verifica se existe uma release mais atualizada do que a informada por parametro
 		String lastTagVer = BranchUtil.getVersionFromTag(gitFlow.findLastTag());
-		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
+		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) < 0) {
 			throw buildMojoException("The release " + getVersion() + " cannot be finished because there is a newer release " + lastTagVer + "!");
 		}
 
