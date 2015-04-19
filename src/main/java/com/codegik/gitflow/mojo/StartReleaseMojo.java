@@ -61,6 +61,10 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			throw buildMojoException("The release " + getVersion() + " already existed!");
 		}
 
+		if (gitFlow.findBranch(DEVELOP) == null) {
+			throw buildMojoException("Please run gitflow:init goal to initialize your repository!");
+		}
+
 		// O brach atual deve ser o develop pois o updatePomVersion utiliza o MavenProject que ja possui
 		// todos os poms com as versoes atuais, se estiver em outro branch todos os poms deverao ser recarregados
 		if (!gitFlow.getBranch().equals(DEVELOP)) {
@@ -75,7 +79,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
 			gitFlow.reset(DEVELOP);
-			gitFlow.checkoutBranchForced(branchName);
+			gitFlow.checkoutBranchForced(DEVELOP);
 			gitFlow.deleteLocalBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw buildMojoException("ERROR", e);

@@ -18,9 +18,6 @@ import java.util.regex.Matcher;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.config.ReleaseDescriptor;
-import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
 import org.eclipse.jgit.api.Git;
@@ -397,31 +394,6 @@ public class GitFlow {
 	}
 
 
-	public ReleaseEnvironment buildDefaultReleaseEnvironment() throws Exception {
-		ReleaseEnvironment environment = new DefaultReleaseEnvironment();
-
-		environment.setLocalRepositoryDirectory(getGit().getRepository().getDirectory());
-
-		return environment;
-	}
-
-
-	public ReleaseDescriptor buildReleaseDescriptor() throws Exception {
-		ReleaseDescriptor descriptor = new ReleaseDescriptor();
-
-		descriptor.setAutoVersionSubmodules(true);
-		descriptor.setInteractive(false);
-		descriptor.setUpdateWorkingCopyVersions(true);
-		descriptor.setWorkingDirectory(getGit().getRepository().getDirectory().getParent());
-		descriptor.setScmUsername(username);
-		descriptor.setScmPassword(password);
-		descriptor.setUpdateDependencies(true);
-		descriptor.setScmTagNameFormat("@{project.version}");
-
-		return descriptor;
-	}
-
-
 	public MojoExecutionException buildConflictExeption(MergeGitFlow mergeGitFlow, MergeResult merge) {
 		getLog().error("There is conflicts in the following files:");
 
@@ -571,5 +543,9 @@ public class GitFlow {
 
 	protected Log getLog() {
 		return log;
+	}
+
+	public CredentialsProvider getCredentialsProvider() {
+		return credentialsProvider;
 	}
 }

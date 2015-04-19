@@ -19,7 +19,6 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.ReleaseManager;
 import org.codehaus.mojo.versions.api.PomHelper;
 import org.codehaus.mojo.versions.change.VersionChange;
 import org.codehaus.mojo.versions.change.VersionChanger;
@@ -51,9 +50,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     @Component
     private MavenProject project;
 
-    @Component
-    private ReleaseManager releaseManager;
-
     @Parameter( property = "password" )
     private String password;
 
@@ -68,6 +64,11 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
     public void execute() throws MojoExecutionException, MojoFailureException {
     	GitFlow gitFlow = new GitFlow(getLog(), getUsername(), getPassword());
+
+    	if (gitFlow.getCredentialsProvider() == null) {
+    		throw buildMojoException("Please set your credentials: -Dusername=<username> -Dpassword=<password>");
+    	}
+
     	try {
     		run(gitFlow);
     		getLog().info("DONE");
@@ -190,15 +191,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 		this.project = project;
 	}
 
-
-	public ReleaseManager getReleaseManager() {
-		return releaseManager;
-	}
-
-
-	public void setReleaseManager(ReleaseManager releaseManager) {
-		this.releaseManager = releaseManager;
-	}
 
 	public String getPassword() {
 		return password;
