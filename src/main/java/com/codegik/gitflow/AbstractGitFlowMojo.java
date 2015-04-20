@@ -68,7 +68,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	public String compileProject() throws Exception {
 		getLog().info("Compiling project...");
 
-		if (getSkipTests()) {
+		if (Boolean.TRUE.equals(getSkipTests())) {
 			return mvnExecutor.execute("clean", "install", "-DskipTests");
 		}
 
