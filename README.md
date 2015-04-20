@@ -43,5 +43,10 @@ Configuration is not necessary.
 - * Merge **hotfix** branch into **develop** and **master**.
 - * Delete hotfix branch.
 
+- `gitflow:build-release` 
+- * While the first release is coming out, the other release also need to be tested.
+- * To execute this goal the current branch must be **release** (Ex: release/1.1).
+- * Merge **develop** into **release** branch.
+- * Do not create a Tag.
 
-**Good luck!**
+## Good luck! ##
