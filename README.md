@@ -58,6 +58,7 @@ gitflow:start-development
 gitflow:finish-development
 ```
 - Merge branch **development** into **release**.
+- `Ex: mvn gitflow:finish-development -DfullBranchName=feature/1.4/task3456`
 
 
 ```
@@ -67,6 +68,7 @@ gitflow:start-hotfix
 ```
 - Start new **hotfix** branch from **master**.
 - Increase the pom version.
+- `Ex: mvn gitflow:start-hotfix -DbranchName=issue312`
 
 
 ```
@@ -76,6 +78,18 @@ gitflow:finish-hotfix
 ```
 - Merge **hotfix** branch into **develop** and **master**.
 - Delete hotfix branch.
+- `Ex: mvn gitflow:finish-hotfix -DbranchName=issue312`
+
+
+```
+#!maven
+
+gitflow:publish-release
+```
+- After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
+- Find last **tag** from **release** and merge into **master**.
+- **Delete all** related branches bugfix, feature and release.
+- `Ex: mvn gitflow:publish-release -Dversion=1.4`
 
 
 ```
@@ -87,18 +101,7 @@ gitflow:build-release
 - To execute this goal the current branch must be **release** (Ex: release/1.1).
 - Merge **develop** into **release** branch.
 - Do not create a Tag.
-
-
-```
-#!maven
-
-gitflow:publish-release
-```
-- After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
-- Find last **tag** from **release** and merge into **master**.
-- **Delete all** related branches bugfix, feature and release.
-- `Ex: gitflow:publish-release -Dversion=1.4`
-
+- `Ex: mvn gitflow:build-release -Dversion=1.5`
 
 
 ## Good luck! ##
