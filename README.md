@@ -49,4 +49,10 @@ Configuration is not necessary.
 - * Merge **develop** into **release** branch.
 - * Do not create a Tag.
 
+- `gitflow:publish-release` 
+- * After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
+- * Find last **tag** from **release** and merge into **master**.
+- * **Delete all** related branches bugfix, feature and release.
+
+
 ## Good luck! ##
