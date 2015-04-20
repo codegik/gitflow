@@ -18,6 +18,17 @@ Configuration is not necessary.
 
 # Goals Overview
 
+```
+#!maven
+
+gitflow:init
+```
+- Create develop branch.
+- Update pom(s) version (1.0.0).
+- Create a first tag (1.0.0).
+- To execute this goal the current branch must be **master**.
+- `Ex: mvn gitflow:init`
+
 
 ```
 #!maven
