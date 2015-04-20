@@ -143,7 +143,7 @@ public class GitFlow {
 
 
 	public String deleteRemoteBranch(Ref branchRef) throws Exception {
-		String simpleName = BranchUtil.buildRemoteBranchName(branchRef);
+		String simpleName = BranchUtil.getSimpleBranchName(branchRef);
 
 		gitExecutor.execute("branch", "-D", simpleName);
 
