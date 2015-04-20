@@ -35,7 +35,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		String newVersion = getVersion();
 
 		updatePomVersion(newVersion + SUFFIX_RELEASE);
-		compileProject("clean install", getSkipTests());
+		compileProject();
 
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-release] Create release branch " + getBranchName() + ": Bumped version number to " + newVersion + SUFFIX_RELEASE);
@@ -51,26 +51,26 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		Matcher matcher = RELEASE_VERSION_PATTERN.matcher(getVersion());
 		if (matcher.find()) {
 			if (Integer.parseInt(matcher.group(2)) == 0) {
-				throw buildMojoException("The first release must be 1.1 at least!");
+				throw new MojoExecutionException("The first release must be 1.1 at least!");
 			}
 		}
 
 		if (gitFlow.findBranch(getVersion()) != null) {
-			throw buildMojoException("The release " + getVersion() + " already exists!");
+			throw new MojoExecutionException("The release " + getVersion() + " already exists!");
 		}
 
 		if (gitFlow.findLastTag(getVersion()) != null) {
-			throw buildMojoException("The release " + getVersion() + " already existed!");
+			throw new MojoExecutionException("The release " + getVersion() + " already existed!");
 		}
 
 		if (gitFlow.findBranch(DEVELOP) == null) {
-			throw buildMojoException("Please run gitflow:init goal to initialize your repository!");
+			throw new MojoExecutionException("Please run gitflow:init goal to initialize your repository!");
 		}
 
 		// O brach atual deve ser o develop pois o updatePomVersion utiliza o MavenProject que ja possui
 		// todos os poms com as versoes atuais, se estiver em outro branch todos os poms deverao ser recarregados
 		if (!gitFlow.getBranch().equals(DEVELOP)) {
-			throw buildMojoException("You must be on branch develop for execute this goal!");
+			throw new MojoExecutionException("You must be on branch develop for execute this goal!");
 		}
 	}
 
@@ -84,7 +84,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 			gitFlow.checkoutBranchForced(DEVELOP);
 			gitFlow.deleteLocalBranch(getBranchName());
 		} catch (Exception e1) {;}
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 

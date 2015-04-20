@@ -29,10 +29,10 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 		gitFlow.createBranch(getBranchName());
 
-		String newVersion = gitFlow.incrementVersion(getProject().getVersion());
+		String newVersion = gitFlow.increaseVersionBasedOnTag(getProject().getVersion());
 
 		updatePomVersion(newVersion);
-		compileProject("clean install", getSkipTests());
+		compileProject();
 
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
@@ -42,11 +42,11 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 	private void validadeBefore(GitFlow gitFlow) throws Exception {
 		if (!gitFlow.getBranch().toLowerCase().equals(MASTER)) {
-			throw buildMojoException("You must be on branch master for execute this goal!");
+			throw new MojoExecutionException("You must be on branch master for execute this goal!");
 		}
 
 		if (gitFlow.findBranch(getBranchName()) != null) {
-			throw buildMojoException("The branch " + getBranchName() + " already exists!");
+			throw new MojoExecutionException("The branch " + getBranchName() + " already exists!");
 		}
 	}
 
@@ -60,7 +60,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 			gitFlow.checkoutBranchForced(MASTER);
 			gitFlow.deleteRemoteBranch(getBranchName());
 		} catch (Exception e1) {;}
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 

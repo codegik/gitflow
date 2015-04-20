@@ -49,9 +49,9 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 				getLog().info("Found newer " + lastTagVer);
 
-				String newVersion = gitFlow.incrementVersion(lastTag);
+				String newVersion = gitFlow.increaseVersionBasedOnTag(lastTag);
 				updatePomVersion(newVersion);
-				compileProject("clean install", getSkipTests());
+				compileProject();
 
 				getLog().info("Commiting changed files");
 				revertCommit = gitFlow.commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
@@ -74,7 +74,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
 
 		gitFlow.merge(mergeGitFlow);
-		compileProject("clean install", getSkipTests());
+		compileProject();
 
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
@@ -89,7 +89,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 	private void validadeBefore(GitFlow gitFlow) throws Exception {
 		if (gitFlow.findBranch(getBranchName()) != null) {
-			throw buildMojoException("The branch " + getBranchName() + " dosen't exists!");
+			throw new MojoExecutionException("The branch " + getBranchName() + " dosen't exists!");
 		}
 	}
 
@@ -111,7 +111,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 				gitFlow.deleteTag(pomVersion);
 			}
 		} catch (Exception e1) {;}
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 

@@ -28,7 +28,7 @@ public class InitMojo extends AbstractGitFlowMojo {
 	public void run(GitFlow gitFlow) throws Exception {
 
 		if (!gitFlow.getBranch().equals(MASTER)) {
-			throw buildMojoException("You must be on branch master for execute this goal!");
+			throw new MojoExecutionException("You must be on branch master for execute this goal!");
 		}
 
 		String newVersion = "1.0";
@@ -44,7 +44,7 @@ public class InitMojo extends AbstractGitFlowMojo {
 		if (lastTag != null) {
 			String lastTagVer = BranchUtil.getVersionFromTag(gitFlow.findLastTag());
 			if (gitFlow.whatIsTheBigger(newVersion, lastTagVer) <= 0) {
-				newVersion = gitFlow.incrementVersion(lastTag);
+				newVersion = gitFlow.increaseVersionBasedOnTag(lastTag);
 			}
 		}
 
@@ -52,7 +52,7 @@ public class InitMojo extends AbstractGitFlowMojo {
 			gitFlow.createBranch(DEVELOP);
 
 			updatePomVersion(newVersion);
-			compileProject("clean install", getSkipTests());
+			compileProject();
 
 			gitFlow.commit("[GitFlow::init] Bumped version number to " + newVersion);
 			gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
@@ -65,6 +65,6 @@ public class InitMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 }

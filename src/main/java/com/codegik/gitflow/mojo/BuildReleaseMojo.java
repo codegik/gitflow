@@ -30,7 +30,7 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 		String releaseBranch = BranchUtil.buildReleaseBranchName(getVersion());
 
 		if (!gitFlow.getBranch().equals(releaseBranch)) {
-			throw buildMojoException("You must be on branch " + releaseBranch + " for execute this goal! ");
+			throw new MojoExecutionException("You must be on branch " + releaseBranch + " for execute this goal! ");
 		}
 
 		Ref releaseRef 		= gitFlow.validadeReleaseVersion(getVersion());
@@ -48,7 +48,7 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(devPomVer, getVersion()));
 
 		gitFlow.merge(mergeGitFlow);
-		compileProject("clean install", getSkipTests());
+		compileProject();
 
 		// Recarrega a versao do pom
 		String pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
@@ -59,7 +59,7 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 		gitFlow.pushAll();
 
 		// Incrementa a versao baseado no pom
-		String newVersion = gitFlow.incrementVersion(pomVersion);
+		String newVersion = gitFlow.increaseVersionBasedOnTag(pomVersion);
 		updatePomVersion(newVersion);
 
 		getLog().info("Commiting changed files");
@@ -70,7 +70,7 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 
