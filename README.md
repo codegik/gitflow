@@ -26,6 +26,7 @@ gitflow:start-release
 ```
 - To execute this goal the current branch must be **develop**.
 - Start new **release** branch from **develop** and updates pom(s) with release version. 
+- `Ex: mvn gitflow:start-release -Dversion=1.4`
 
 
 ```
@@ -37,6 +38,7 @@ gitflow:finish-release
 - Merge **release** branch into **develop**. 
 - Increase pom version based on last Tag created. 
 - Create a new tag.
+- `Ex: mvn gitflow:finish-release -Dversion=1.4`
 
 
 ```
@@ -46,6 +48,8 @@ gitflow:start-development
 ```
 - Start new development branch from **release**.
 - The branch type must be **feature** or **bugfix**.
+- `Ex: mvn gitflow:start-development -DfullBranchName=feature/1.4/task3456`
+- `Pattern fullBranchName: <branchType=[feature|bugfix]>/<releaseVersion>/<branchName>`
 
 
 ```
