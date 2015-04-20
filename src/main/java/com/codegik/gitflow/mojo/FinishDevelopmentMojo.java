@@ -1,7 +1,6 @@
 package com.codegik.gitflow.mojo;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -12,6 +11,7 @@ import org.eclipse.jgit.lib.Ref;
 import com.codegik.gitflow.AbstractGitFlowMojo;
 import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.MergeGitFlow;
+import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 /**
@@ -31,15 +31,15 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		String[] branchInfo 	= validateFullBranchName(getBranchName());
-		String releaseBranch 	= PREFIX_RELEASE + SEPARATOR + branchInfo[1];
+		Map<String, String> branchInfo 	= BranchUtil.validateFullBranchName(getBranchName());
+		String releaseBranch 			= BranchUtil.buildReleaseBranchName(branchInfo.get("version"));
 
 		gitFlow.checkoutBranch(releaseBranch);
 
 		Ref ref = gitFlow.findBranch(getBranchName());
 
 		if (ref == null) {
-			throw buildMojoException("The fullBranchName " + getBranchName() + " not found!");
+			throw new MojoExecutionException("The fullBranchName " + getBranchName() + " not found!");
 		}
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
@@ -49,7 +49,7 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setIgnoringFilesStage(Stage.OURS);
 
 		gitFlow.merge(mergeGitFlow);
-		compileProject("clean install", getSkipTests());
+		compileProject();
 		gitFlow.push("Pushing merge");
 
 		if (deleteBranchAfter) {
@@ -58,42 +58,9 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 	}
 
 
-	private List<String> branchTypeToArray() {
-		List<String> values = new ArrayList<String>();
-
-		for (BranchType type : BranchType.values()) {
-			values.add(type.name());
-		}
-
-		return values;
-	}
-
-
-	private String[] validateFullBranchName(String branchName) throws Exception {
-		String errorMessage = "The fullBranchName must be <branchType=[feature|bugfix]>/<releaseVersion>/<branchName>. EX: feature/1.1.0/issue3456";
-		String[] pattern 	= branchName.split("/");
-
-		if (pattern.length != 3) {
-			throw buildMojoException(errorMessage);
-		}
-
-		if (!branchTypeToArray().contains(pattern[0])) {
-			throw buildMojoException(errorMessage);
-		}
-
-		return pattern;
-	}
-
-
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
-		try {
-			getLog().error(e.getMessage());
-			getLog().info("Rolling back all changes");
-			gitFlow.reset(DEVELOP);
-			gitFlow.checkoutBranchForced(DEVELOP);
-		} catch (Exception e1) {;}
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 

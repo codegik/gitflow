@@ -8,10 +8,10 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.release.ReleaseResult;
-import org.apache.maven.shared.release.env.DefaultReleaseEnvironment;
-import org.apache.maven.shared.release.env.ReleaseEnvironment;
-import org.apache.maven.shared.release.exec.MavenExecutor;
+
+import com.codegik.gitflow.command.CommandExecutor;
+import com.codegik.gitflow.command.GitCommandExecutor;
+import com.codegik.gitflow.command.MvnCommandExecutor;
 
 
 public abstract class AbstractGitFlowMojo extends AbstractMojo {
@@ -26,7 +26,6 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	public static final String PREFIX_TAG = "refs/tags";
 	public static final String PREFIX_RELEASE = "release";
 	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
-	public static final Pattern POM_SNAPSHOT_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,2})(-SNAPSHOT)");
 	public static final Pattern RELEASE_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})");
 	public static final String SEPARATOR = "/";
 	public static final String FILE_POM = "pom.xml";
@@ -34,17 +33,11 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     @Component
     private MavenProject project;
 
-    @Component
-    private MavenExecutor mavenExecutor;
-
-    @Parameter( property = "password" )
-    private String password;
-
-    @Parameter( property = "username" )
-    private String username;
-
     @Parameter( property = "skipTests" )
     private Boolean skipTests;
+
+    private CommandExecutor mvnExecutor;
+    private CommandExecutor gitExecutor;
 
 
     public abstract void run(GitFlow gitFlow) throws Exception;
@@ -53,11 +46,9 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 
     public void execute() throws MojoExecutionException, MojoFailureException {
-    	GitFlow gitFlow = new GitFlow(getLog(), getUsername(), getPassword());
-
-    	if (gitFlow.getCredentialsProvider() == null) {
-    		throw buildMojoException("Please set your credentials: -Dusername=<username> -Dpassword=<password>");
-    	}
+    	mvnExecutor 	= new MvnCommandExecutor(getLog());
+    	gitExecutor 	= new GitCommandExecutor(getLog());
+    	GitFlow gitFlow = new GitFlow(getLog(), gitExecutor);
 
     	try {
     		run(gitFlow);
@@ -68,40 +59,20 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     }
 
 
-	protected MojoExecutionException buildMojoException(String errorMessage) {
-		getLog().error(errorMessage);
-		return new MojoExecutionException(errorMessage);
-	}
-
-
-	protected MojoExecutionException buildMojoException(String errorMessage, Exception e) {
-		getLog().error(errorMessage);
-		return new MojoExecutionException(errorMessage, e);
-	}
-
-
-	protected ReleaseResult updatePomVersion(String newVersion) throws Exception {
+	protected String updatePomVersion(String newVersion) throws Exception {
 		getLog().info("Bumping version of files to " + newVersion);
-		ReleaseResult releaseResult = new ReleaseResult();
-		ReleaseEnvironment releaseEnvironment = new DefaultReleaseEnvironment();
-		String params = getSkipTests() ? " -DskipTests" : null;
-		params += " -DgenerateBackupPoms=false";
-		params += " -DnewVersion=" + newVersion;
-
-		getMavenExecutor().executeGoals(getProject().getBasedir(), "versions:set", releaseEnvironment, false, params, releaseResult);
-
-		return releaseResult;
+		return mvnExecutor.execute("versions:set", "-DgenerateBackupPoms=false", "-DnewVersion=" + newVersion, "-DskipTests");
 	}
 
 
-	public ReleaseResult compileProject(String goals, Boolean skipTests) throws Exception {
-		getLog().info("Compiling project: " + goals + " -DskipTests=" + skipTests);
-		ReleaseResult releaseResult = new ReleaseResult();
-		ReleaseEnvironment releaseEnvironment = new DefaultReleaseEnvironment();
+	public String compileProject() throws Exception {
+		getLog().info("Compiling project...");
 
-		getMavenExecutor().executeGoals(getProject().getBasedir(), goals, releaseEnvironment, false, (skipTests ? " -DskipTests" : null), releaseResult);
+		if (Boolean.TRUE.equals(getSkipTests())) {
+			return mvnExecutor.execute("clean", "install", "-DskipTests");
+		}
 
-		return releaseResult;
+		return mvnExecutor.execute("clean", "install");
 	}
 
 
@@ -114,37 +85,12 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 		this.project = project;
 	}
 
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public void setUsername(String username) {
-		this.username = username;
-	}
-
 	public Boolean getSkipTests() {
 		return skipTests;
 	}
 
 	public void setSkipTests(Boolean skipTests) {
 		this.skipTests = skipTests;
-	}
-
-	public MavenExecutor getMavenExecutor() {
-		return mavenExecutor;
-	}
-
-	public void setMavenExecutor(MavenExecutor mavenExecutor) {
-		this.mavenExecutor = mavenExecutor;
 	}
 
 }

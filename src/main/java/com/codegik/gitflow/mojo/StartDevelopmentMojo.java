@@ -1,5 +1,7 @@
 package com.codegik.gitflow.mojo;
 
+import java.util.Map;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -18,31 +20,26 @@ import com.codegik.gitflow.mojo.util.BranchUtil;
 @Mojo(name = "start-development", aggregator = true)
 public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
-    @Parameter( property = "version", required = true )
-	private String version;
-
-    @Parameter( property = "branchType", required = true )
-    private BranchType branchType;
-
-    @Parameter( property = "branchName", required = true )
-    private String branchName;
+    @Parameter( property = "fullBranchName", required = true )
+    private String fullBranchName;
 
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		gitFlow.validadeReleaseVersion(getVersion());
+		Map<String, String> branchInfo 	= BranchUtil.validateFullBranchName(getFullBranchName());
+		String version  				= branchInfo.get("version");
 
-		setBranchName(BranchUtil.buildDevBranchName(getBranchType(), getVersion(), getBranchName()));
+		gitFlow.validadeReleaseVersion(version);
 
-		if (gitFlow.findBranch(getBranchName()) != null) {
-			throw buildMojoException("The branch " + getBranchName() + " already exists!");
+		if (gitFlow.findBranch(getFullBranchName()) != null) {
+			throw new MojoExecutionException("The branch " + getFullBranchName() + " already exists!");
 		}
 
-		compileProject("clean install", getSkipTests());
+		compileProject();
 
-		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(getVersion()));
-		gitFlow.createBranch(getBranchName());
-		gitFlow.push("Pushing branch " + getBranchName());
+		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(version));
+		gitFlow.createBranch(getFullBranchName());
+		gitFlow.push("Pushing branch " + getFullBranchName());
 	}
 
 
@@ -53,39 +50,19 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 			getLog().info("Rolling back all changes");
 			gitFlow.reset(DEVELOP);
 			gitFlow.checkoutBranchForced(DEVELOP);
-			gitFlow.deleteLocalBranch(getBranchName());
+			gitFlow.deleteLocalBranch(getFullBranchName());
 		} catch (Exception e1) {;}
-		throw buildMojoException("ERROR", e);
+		throw new MojoExecutionException("ERROR", e);
 	}
 
 
-	public String getVersion() {
-		return version;
+	public String getFullBranchName() {
+		return fullBranchName;
 	}
 
 
-	public void setVersion(String version) {
-		this.version = version;
-	}
-
-
-	public String getBranchName() {
-		return branchName;
-	}
-
-
-	public void setBranchName(String branchName) {
-		this.branchName = branchName;
-	}
-
-
-	public BranchType getBranchType() {
-		return branchType;
-	}
-
-
-	public void setBranchType(BranchType branchType) {
-		this.branchType = branchType;
+	public void setFullBranchName(String fullBranchName) {
+		this.fullBranchName = fullBranchName;
 	}
 
 }

@@ -17,38 +17,50 @@ import java.util.regex.Matcher;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
-import com.codegik.gitflow.command.CommandExecutor;
 import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
-public class GitFlow {
+public class CopyOfGitFlow {
 	private Git git;
 	private Log log;
+	private String username;
+	private String password;
 	private File repository;
-	private CommandExecutor gitExecutor;
+	private CredentialsProvider credentialsProvider;
 
 
-	public GitFlow(Log log, CommandExecutor gitExecutor) {
-		this(log, gitExecutor, new File("."));
+	public CopyOfGitFlow(Log log, String username, String passwd) {
+		this(log, username, passwd, new File("."));
 	}
 
 
-	public GitFlow(Log log, CommandExecutor gitExecutor, File repository) {
+	public CopyOfGitFlow(Log log, String username, String passwd, File repository) {
 		this.log 		= log;
+		this.username 	= username;
+		this.password 	= passwd;
 		this.repository = repository;
-		this.gitExecutor= gitExecutor;
+
+		if (username != null && passwd != null) {
+			credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+		}
 	}
 
 
@@ -142,12 +154,16 @@ public class GitFlow {
 	}
 
 
-	public String deleteRemoteBranch(Ref branchRef) throws Exception {
-		String simpleName = BranchUtil.getSimpleBranchName(branchRef);
+	public Iterable<PushResult> deleteRemoteBranch(Ref branchRef) throws Exception {
+		String simpleName = BranchUtil.buildRemoteBranchName(branchRef);
+		RefSpec refSpec = new RefSpec().setSource(null).setDestination(simpleName);
+		getGit().branchDelete().setForce(true).setBranchNames(simpleName).call();
 
-		gitExecutor.execute("branch", "-D", simpleName);
+		if (credentialsProvider != null) {
+			return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").setCredentialsProvider(credentialsProvider).call();
+		}
 
-		return gitExecutor.execute("push", "origin", ":" + simpleName);
+		return getGit().push().setRefSpecs(refSpec).setRemote("origin").call();
 	}
 
 
@@ -156,7 +172,7 @@ public class GitFlow {
 	}
 
 
-	public String deleteRemoteBranch(String branchName) throws Exception {
+	public Iterable<PushResult> deleteRemoteBranch(String branchName) throws Exception {
 		getLog().info("Deleting branch " + branchName);
 		Ref branchRef = findBranch(branchName);
 
@@ -194,8 +210,15 @@ public class GitFlow {
 	}
 
 
-	public String deleteTag(String tagName) throws Exception {
-		return gitExecutor.execute("push", "origin", ":" + tagName);
+	public Iterable<PushResult> deleteTag(String tagName) throws Exception {
+		getLog().info("Deleting tag " + tagName);
+		RefSpec refSpec = new RefSpec().setSource(null).setDestination(tagName);
+
+		if (credentialsProvider != null) {
+			return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().push().setRefSpecs(refSpec).setForce(true).setRemote("origin").call();
 	}
 
 
@@ -248,29 +271,39 @@ public class GitFlow {
 	}
 
 
-	public String pull() throws Exception {
-		return gitExecutor.execute("pull");
+	public PullResult pull() throws Exception {
+		if (credentialsProvider != null) {
+			return getGit().pull().setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().pull().call();
 	}
 
 
-	public String push() throws Exception {
+	public Iterable<PushResult> push() throws Exception {
 		return push(null);
 	}
 
 
-	public String push(String logMessage) throws Exception {
+	public Iterable<PushResult> push(String logMessage) throws Exception {
 		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
 
-		return gitExecutor.execute("push");
+		if (credentialsProvider != null) {
+	        return getGit().push().setForce(true).setCredentialsProvider(credentialsProvider).call();
+		}
+
+		return getGit().push().setForce(true).call();
 	}
 
 
-	public String pushAll() throws Exception {
+	public Iterable<PushResult> pushAll() throws Exception {
 		getLog().info("Pushing all");
 
-		gitExecutor.execute("push", "--all", "origin");
+		if (credentialsProvider != null) {
+	        return getGit().push().setPushTags().setPushAll().setCredentialsProvider(credentialsProvider).call();
+		}
 
-		return gitExecutor.execute("push", "--tags", "origin");
+		return getGit().push().setPushTags().setPushAll().call();
 	}
 
 
@@ -300,24 +333,10 @@ public class GitFlow {
 	}
 
 
-	/**
-	 * Find last remote tag off repository
-	 *
-	 * @return Ref - Reference off a remote tag
-	 * @throws Exception
-	 */
 	public Ref findLastTag() throws Exception {
 		return findLastTag(null);
 	}
 
-
-	/**
-	 * Find last remote tag off release version. Ex: tags/1.4*
-	 *
-	 * @param String releaseVersion - Version off release. Ex: 1.4
-	 * @return Ref - Reference off a remote tag
-	 * @throws Exception
-	 */
 	public Ref findLastTag(String releaseVersion) throws Exception {
 		final RevWalk walk = new RevWalk(getGit().getRepository());
 		List<Ref> tags = getGit().tagList().call();
@@ -351,6 +370,30 @@ public class GitFlow {
 	}
 
 
+	public Ref findTag(String tag) throws Exception {
+		getLog().info("Looking for tag " + tag);
+
+		Matcher matcher = TAG_VERSION_PATTERN.matcher(tag);
+
+        if (matcher.find()) {
+        	String matchTag = matcher.group(0);
+        	for (Ref b : getGit().tagList().call()) {
+        		if (matchTag.equals(b.getName().toLowerCase().replace(PREFIX_TAG + SEPARATOR, ""))) {
+        			return b;
+        		}
+        	}
+        }
+
+
+		return null;
+	}
+
+
+	public String describe() throws Exception {
+		return getGit().describe().call();
+	}
+
+
 	public MojoExecutionException buildConflictExeption(MergeGitFlow mergeGitFlow, MergeResult merge) {
 		getLog().error("There is conflicts in the following files:");
 
@@ -369,46 +412,13 @@ public class GitFlow {
 	}
 
 
-	/**
-	 * Increase version without validation
-	 *
-	 * @param String version - Pom version. Ex: 1.4.3
-	 * @return The increased version. Ex: 1.4.4
-	 * @throws Exception
-	 */
-	public String increaseVersion(String version) throws Exception {
-		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
 
-		if (matcher.find()) {
-			Integer increment = new Integer(matcher.group(3));
-			increment++;
-			return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), increment.toString());
-		}
-
-		throw new MojoExecutionException("The version " + version + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+	public String incrementVersion(Ref lastTag) throws Exception {
+		return incrementVersion(BranchUtil.getVersionFromTag(lastTag));
 	}
 
 
-	/**
-	 * Increase version based on last tag off release
-	 *
-	 * @param Ref lastTag - Reference to a remote tag. Ex: tags/1.4.3
-	 * @return The increased version. Ex: 1.4.4
-	 * @throws Exception
-	 */
-	public String increaseVersionBasedOnTag(Ref lastTag) throws Exception {
-		return increaseVersionBasedOnTag(BranchUtil.getVersionFromTag(lastTag));
-	}
-
-
-	/**
-	 * Increase version based on last tag off release
-	 *
-	 * @param String version - Pom version. Ex: 1.4.3
-	 * @return The increased version. Ex: 1.4.4
-	 * @throws Exception
-	 */
-	public String increaseVersionBasedOnTag(String version) throws Exception {
+	public String incrementVersion(String version) throws Exception {
 		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
 
 		if (matcher.find()) {
@@ -420,7 +430,7 @@ public class GitFlow {
 			if (lastTag == null) {
 				newVersion = matcher.group(3);
 			} else {
-				newVersion 	= BranchUtil.getVersionFromTag(lastTag);
+				newVersion 	= lastTag.getName().replace(PREFIX_TAG + SEPARATOR, "");
 				matcher 	= TAG_VERSION_PATTERN.matcher(newVersion);
 				newVersion 	= matcher.find() ? matcher.group(3) : null;
 			}
@@ -506,8 +516,29 @@ public class GitFlow {
 	}
 
 
+	public CopyOfGitFlow cloneRepo(MavenProject mavenProject) throws Exception {
+		File outputDir = new File(mavenProject.getBuild().getOutputDirectory());
+		File checkoutkdir = new File(outputDir, "gitflow-checkout");
+
+		if (!checkoutkdir.mkdirs()) {
+			throw new MojoExecutionException("Could not create dir " + checkoutkdir.getAbsolutePath() + " to checkout repository");
+		}
+
+		CopyOfGitFlow gitFlow = new CopyOfGitFlow(getLog(), username, password, checkoutkdir);
+
+		UsernamePasswordCredentialsProvider user = new UsernamePasswordCredentialsProvider(username, password);
+		Git git = Git.cloneRepository().setURI(mavenProject.getScm().getUrl()).setDirectory(checkoutkdir).setCredentialsProvider(user).call();
+		gitFlow.setGit(git);
+
+		return gitFlow;
+	}
+
+
 	protected Log getLog() {
 		return log;
 	}
 
+	public CredentialsProvider getCredentialsProvider() {
+		return credentialsProvider;
+	}
 }
