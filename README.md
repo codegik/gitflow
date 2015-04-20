@@ -23,6 +23,7 @@ Configuration is not necessary.
 
 gitflow:init
 ```
+- Is not necessary execute this goal unless you want plugin do it for you.
 - Create develop branch.
 - Update pom(s) version (1.0.0).
 - Create a first tag (1.0.0).
