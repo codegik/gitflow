@@ -14,6 +14,7 @@ Besides, there are two testing phases, one is held before delivering to the cust
 # Installation
 
 The plugin is available from Maven central.
+Configuration is not necessary.
 
 # Goals Overview
 
