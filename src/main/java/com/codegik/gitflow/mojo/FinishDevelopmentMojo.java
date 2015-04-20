@@ -60,12 +60,6 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 
 	@Override
 	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
-		try {
-			getLog().error(e.getMessage());
-			getLog().info("Rolling back all changes");
-			gitFlow.reset(DEVELOP);
-			gitFlow.checkoutBranchForced(DEVELOP);
-		} catch (Exception e1) {;}
 		throw new MojoExecutionException("ERROR", e);
 	}
 
