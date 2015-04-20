@@ -419,12 +419,6 @@ public class GitFlow {
 	}
 
 
-	public MojoExecutionException buildMojoException(String errorMessage, Exception e) {
-		getLog().error(errorMessage);
-		return new MojoExecutionException(errorMessage, e);
-	}
-
-
 	public String incrementVersion(Ref lastTag) throws Exception {
 		return incrementVersion(BranchUtil.getVersionFromTag(lastTag));
 	}
@@ -463,8 +457,10 @@ public class GitFlow {
 	 * A value less than 0 if currentVersion is numerically less than the releaseBranchVersion
 	 * A value greater than 0 if currentVersion is numerically greater than the releaseBranchVersion
 	 *
-	 * @param currentVersion
-	 * @param releaseBranchVersion
+	 * @param currentVersion - The current version of pom.xml to compare
+	 * @param releaseBranchVersion - The release version to compare
+	 * @return org.eclipse.jgit.api.Stage
+	 * @throws Exception
 	 */
 	public Stage defineStageForMerge(String currentVersion, String releaseBranchVersion) throws Exception {
 		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
@@ -491,8 +487,10 @@ public class GitFlow {
 	 * A value less than 0 if firstVersion is numerically less than the secondVersion
 	 * A value greater than 0 if firstVersion is numerically greater than the secondVersion
 	 *
-	 * @param firstVersion
-	 * @param secondVersion
+	 * @param firstVersion - The first version to compare
+	 * @param secondVersion - The first version to compare
+	 * @return Integer
+	 * @throws Exception
 	 */
 	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
 		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + "?");
