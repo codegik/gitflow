@@ -98,7 +98,7 @@ gitflow:publish-release
 gitflow:build-release
 ```
 - While the first release is coming out, the other release also need to be tested.
-- To execute this goal the current branch must be **release** (Ex: release/1.1).
+- To execute this goal the current branch must be **release** (Ex: release/1.5).
 - Merge **develop** into **release** branch.
 - Do not create a Tag.
 - `Ex: mvn gitflow:build-release -Dversion=1.5`
