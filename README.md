@@ -17,13 +17,30 @@ The plugin is available from Maven central.
 
 # Goals Overview
 
-- `gitflow:start-release` - Start new **release** branch from **develop** and updates pom(s) with release version. To execute this goal the current branch must be **develop**.
+- `gitflow:start-release` 
+- * To execute this goal the current branch must be **develop**.
+- * Start new **release** branch from **develop** and updates pom(s) with release version. 
 
-- `gitflow:finish-release` - Merge **release** branch into **develop**. Increase pom version based on last Tag created. To execute this goal the current branch must be **develop**.
-- `gitflow:start-development` - Starts a feature branch and updates pom(s) with feature name.
-- `gitflow:finish-development` - Merges a feature branch.
-- `gitflow:start-hotfix` - Starts a hotfix branch and updates pom(s) with hotfix version.
-- `gitflow:finish-hotfix` - Merges a hotfix branch.
+- `gitflow:finish-release` 
+- * To execute this goal the current branch must be **develop**.
+- * Merge **release** branch into **develop**. 
+- * Increase pom version based on last Tag created. 
+- * Create a new tag.
+
+- `gitflow:start-development` 
+- * Start new development branch from **release**.
+- * The branch type must be **feature** or **bugfix**.
+
+- `gitflow:finish-development` 
+- * Merge branch **development** into **release**.
+
+- `gitflow:start-hotfix` 
+- * Start new **hotfix** branch from **master**.
+- * Increase the pom version.
+
+- `gitflow:finish-hotfix` 
+- * Merge **hotfix** branch into **develop** and **master**.
+- * Delete hotfix branch.
 
 
 **Good luck!**
