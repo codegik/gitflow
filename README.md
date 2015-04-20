@@ -18,41 +18,83 @@ Configuration is not necessary.
 
 # Goals Overview
 
-- `gitflow:start-release` 
-- * To execute this goal the current branch must be **develop**.
-- * Start new **release** branch from **develop** and updates pom(s) with release version. 
 
-- `gitflow:finish-release` 
-- * To execute this goal the current branch must be **develop**.
-- * Merge **release** branch into **develop**. 
-- * Increase pom version based on last Tag created. 
-- * Create a new tag.
+```
+#!maven
 
-- `gitflow:start-development` 
-- * Start new development branch from **release**.
-- * The branch type must be **feature** or **bugfix**.
+gitflow:start-release
+```
+- To execute this goal the current branch must be **develop**.
+- Start new **release** branch from **develop** and updates pom(s) with release version. 
 
-- `gitflow:finish-development` 
-- * Merge branch **development** into **release**.
 
-- `gitflow:start-hotfix` 
-- * Start new **hotfix** branch from **master**.
-- * Increase the pom version.
+```
+#!maven
 
-- `gitflow:finish-hotfix` 
-- * Merge **hotfix** branch into **develop** and **master**.
-- * Delete hotfix branch.
+gitflow:finish-release
+```
+- To execute this goal the current branch must be **develop**.
+- Merge **release** branch into **develop**. 
+- Increase pom version based on last Tag created. 
+- Create a new tag.
 
-- `gitflow:build-release` 
-- * While the first release is coming out, the other release also need to be tested.
-- * To execute this goal the current branch must be **release** (Ex: release/1.1).
-- * Merge **develop** into **release** branch.
-- * Do not create a Tag.
 
-- `gitflow:publish-release` 
-- * After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
-- * Find last **tag** from **release** and merge into **master**.
-- * **Delete all** related branches bugfix, feature and release.
+```
+#!maven
+
+gitflow:start-development
+```
+- Start new development branch from **release**.
+- The branch type must be **feature** or **bugfix**.
+
+
+```
+#!maven
+
+gitflow:finish-development
+```
+- Merge branch **development** into **release**.
+
+
+```
+#!maven
+
+gitflow:start-hotfix
+```
+- Start new **hotfix** branch from **master**.
+- Increase the pom version.
+
+
+```
+#!maven
+
+gitflow:finish-hotfix
+```
+- Merge **hotfix** branch into **develop** and **master**.
+- Delete hotfix branch.
+
+
+```
+#!maven
+
+gitflow:build-release
+```
+- While the first release is coming out, the other release also need to be tested.
+- To execute this goal the current branch must be **release** (Ex: release/1.1).
+- Merge **develop** into **release** branch.
+- Do not create a Tag.
+
+
+```
+#!maven
+
+gitflow:publish-release
+```
+- After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
+- Find last **tag** from **release** and merge into **master**.
+- **Delete all** related branches bugfix, feature and release.
+- `Ex: gitflow:publish-release -Dversion=1.4`
+
 
 
 ## Good luck! ##
