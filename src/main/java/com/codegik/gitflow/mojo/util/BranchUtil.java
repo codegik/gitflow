@@ -65,8 +65,13 @@ public class BranchUtil {
 	}
 
 
-	public static String buildHotfixBranchName(String version) {
-		return PREFIX_HOTFIX + SEPARATOR + version;
+	public static String buildHotfixBranchName(String version, String branchName) {
+		return PREFIX_HOTFIX + SEPARATOR + version + SEPARATOR + branchName;
+	}
+
+
+	public static String buildHotfixBranchName(String branchName) {
+		return PREFIX_HOTFIX + SEPARATOR + branchName;
 	}
 
 
