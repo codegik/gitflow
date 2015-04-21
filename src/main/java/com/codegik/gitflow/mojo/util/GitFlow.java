@@ -1,6 +1,5 @@
 package com.codegik.gitflow.mojo.util;
 
-import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
 import static com.codegik.gitflow.AbstractGitFlowMojo.RELEASE_VERSION_PATTERN;
 import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
@@ -74,10 +73,11 @@ public class GitFlow {
 	public Ref validadeReleaseVersion(String version) throws Exception {
 		validadePatternReleaseVersion(version);
 
-		Ref ref = findBranch(BranchUtil.buildReleaseBranchName(version));
+		String fullVersion = BranchUtil.buildReleaseBranchName(version);
+		Ref ref = findBranch(fullVersion);
 
 		if (ref == null) {
-			throw new MojoExecutionException("The version " + PREFIX_RELEASE + SEPARATOR + version + "  not found");
+			throw new MojoExecutionException("The version " + fullVersion + "  not found");
 		}
 
 		return ref;
@@ -144,14 +144,9 @@ public class GitFlow {
 	public String deleteRemoteBranch(Ref branchRef) throws Exception {
 		String simpleName = BranchUtil.getSimpleBranchName(branchRef);
 
-		gitExecutor.execute("branch", "-D", simpleName);
+		deleteLocalBranch(simpleName);
 
 		return gitExecutor.execute("push", "origin", ":" + simpleName);
-	}
-
-
-	public List<String> deleteBranch(Ref branchRef) throws Exception {
-		return getGit().branchDelete().setForce(true).setBranchNames(branchRef.getName()).call();
 	}
 
 
@@ -167,18 +162,6 @@ public class GitFlow {
 	}
 
 
-	public List<String> deleteLocalBranch(String branchName) throws Exception {
-		getLog().info("Deleting local branch " + branchName);
-		Ref branchRef = findLocalBranch(branchName);
-
-		if (branchRef == null) {
-			throw new MojoExecutionException("Branch " + branchName + " not found");
-		}
-
-		return deleteBranch(branchRef);
-	}
-
-
 	public void deleteRemoteBranch(String version, BranchType branchType) throws Exception {
 		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
 
@@ -190,6 +173,17 @@ public class GitFlow {
 				getLog().info(" > Deleted " + b.getName());
 			}
 		}
+	}
+
+
+	public String deleteLocalBranch(String branchName) throws Exception {
+		getLog().info("Deleting local branch " + branchName);
+
+		if (getBranch().equals(branchName)) {
+			throw new MojoExecutionException("Please change to another branch before delete");
+		}
+
+		return gitExecutor.execute("branch", "-D", branchName);
 	}
 
 
@@ -231,12 +225,7 @@ public class GitFlow {
 
 
 	public Ref createBranch(String branchName) throws Exception {
-		return createBranch(branchName, null);
-	}
-
-
-	public Ref createBranch(String branchName, String logMessage) throws Exception {
-		getLog().info("Creating branch " + branchName + (logMessage == null ? "" : " " + logMessage));
+		getLog().info("Creating branch " + branchName);
 		return getGit().checkout().setCreateBranch(true).setName(branchName).call();
 	}
 
@@ -278,19 +267,6 @@ public class GitFlow {
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.REMOTE).call()) {
 			if (branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
-	}
-
-
-	public Ref findLocalBranch(String branch) throws Exception {
-		getLog().info("Looking for local branch " + branch);
-
-		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
 				return b;
 			}
 		}
