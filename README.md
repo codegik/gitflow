@@ -14,7 +14,20 @@ Besides, there are two testing phases, one is held before delivering to the cust
 # Installation
 
 The plugin is available from Maven central.
-Configuration is not necessary.
+
+```
+#!xml
+
+<build>
+   <plugins>
+      <plugin>
+         <groupId>com.codegik</groupId>
+         <artifactId>gitflow-maven-plugin</artifactId>
+      </plugin>
+   </plugins>
+</build>
+```
+
 
 # Goals Overview
 
