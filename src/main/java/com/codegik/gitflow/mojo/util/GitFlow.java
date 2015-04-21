@@ -1,4 +1,4 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.mojo.util;
 
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_RELEASE;
 import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
@@ -30,7 +30,6 @@ import org.eclipse.jgit.revwalk.RevWalk;
 
 import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
 import com.codegik.gitflow.command.CommandExecutor;
-import com.codegik.gitflow.mojo.util.BranchUtil;
 
 
 public class GitFlow {
@@ -253,8 +252,8 @@ public class GitFlow {
 	}
 
 
-	public String push() throws Exception {
-		return push(null);
+	public String pushBranch(String branchName) throws Exception {
+		return gitExecutor.execute("push", "--set-upstream", "origin", branchName);
 	}
 
 

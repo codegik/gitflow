@@ -9,9 +9,9 @@ import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.GitFlow;
-import com.codegik.gitflow.MergeGitFlow;
 import com.codegik.gitflow.mojo.util.BranchUtil;
+import com.codegik.gitflow.mojo.util.GitFlow;
+import com.codegik.gitflow.mojo.util.MergeGitFlow;
 
 
 /**

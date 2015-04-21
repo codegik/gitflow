@@ -1,9 +1,11 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.mojo.util;
 
 import java.text.MessageFormat;
 
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
+
+import com.codegik.gitflow.AbstractGitFlowMojo;
 
 
 public class MergeGitFlow {

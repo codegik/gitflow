@@ -29,7 +29,7 @@ public abstract class CommandExecutor {
 		final int exitCode 		= ForkedMavenExecutor.executeCommandLine(getCommandline(), System.in, stdOut, stdErr);
 
 		if (exitCode != 0) {
-			throw new MavenExecutorException("Error, exit code: \'" + exitCode + "\'", exitCode, stdOut.toString(), stdErr.toString());
+			throw new MavenExecutorException("Error, exit code: '" + exitCode + "'", exitCode, stdOut.toString(), stdErr.toString());
 		}
 
 		return stdOut.toString();

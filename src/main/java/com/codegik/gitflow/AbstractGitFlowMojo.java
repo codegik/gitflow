@@ -12,6 +12,7 @@ import org.apache.maven.project.MavenProject;
 import com.codegik.gitflow.command.CommandExecutor;
 import com.codegik.gitflow.command.GitCommandExecutor;
 import com.codegik.gitflow.command.MvnCommandExecutor;
+import com.codegik.gitflow.mojo.util.GitFlow;
 
 
 public abstract class AbstractGitFlowMojo extends AbstractMojo {
