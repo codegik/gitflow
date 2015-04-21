@@ -5,7 +5,7 @@ The Maven plugin for Vincent Driessen's [successful Git branching model](http://
 This plugin use JGit API provided from [Eclipse](https://eclipse.org/jgit/) and Maven commands.
 
 The picture is a little more complex. Imagine two teams working separated on the same source code, there is a project team and support team.
-The project team works only with features and bug fixes. The support team works with hotfixes. 
+The project team works only with features and bugfixes. The support team works with hotfixes. 
 
 The project team can work in multiple release at the same time. For example, three release on year.
 
@@ -84,6 +84,7 @@ gitflow:finish-development
 ```
 - Merge branch **development** into **release**.
 - `Ex: mvn gitflow:finish-development -DfullBranchName=feature/1.4/task3456`
+- `Pattern fullBranchName: <branchType=[feature|bugfix]>/<releaseVersion>/<branchName>`
 
 
 ```
