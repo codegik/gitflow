@@ -6,8 +6,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jgit.lib.Ref;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.mojo.util.BranchUtil;
+import com.codegik.gitflow.mojo.util.GitFlow;
 
 
 /**
@@ -48,18 +48,20 @@ public class InitMojo extends AbstractGitFlowMojo {
 			}
 		}
 
-		if (gitFlow.findBranch(DEVELOP) == null) {
-			gitFlow.createBranch(DEVELOP);
-
-			updatePomVersion(newVersion);
-			compileProject();
-
-			gitFlow.commit("[GitFlow::init] Bumped version number to " + newVersion);
-			gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
-			gitFlow.pushAll();
-
-			getLog().info("Now your repository is ready to start a release");
+		if (gitFlow.findBranch(DEVELOP) != null) {
+			throw new MojoExecutionException("The branch develop already exists!");
 		}
+
+		gitFlow.createBranch(DEVELOP);
+
+		updatePomVersion(newVersion);
+		compileProject();
+
+		gitFlow.commit("[GitFlow::init] Bumped version number to " + newVersion);
+		gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
+		gitFlow.pushAll();
+
+		getLog().info("Now your repository is ready to start a release");
 	}
 
 

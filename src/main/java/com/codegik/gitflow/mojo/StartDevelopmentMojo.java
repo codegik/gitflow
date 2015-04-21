@@ -7,8 +7,8 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.mojo.util.BranchUtil;
+import com.codegik.gitflow.mojo.util.GitFlow;
 
 
 /**
@@ -39,7 +39,7 @@ public class StartDevelopmentMojo extends AbstractGitFlowMojo {
 
 		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(version));
 		gitFlow.createBranch(getFullBranchName());
-		gitFlow.push("Pushing branch " + getFullBranchName());
+		gitFlow.pushBranch(getFullBranchName());
 	}
 
 

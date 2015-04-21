@@ -5,9 +5,10 @@ import java.util.regex.Matcher;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+
 import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.mojo.util.BranchUtil;
+import com.codegik.gitflow.mojo.util.GitFlow;
 
 
 /**
@@ -39,7 +40,7 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-release] Create release branch " + getBranchName() + ": Bumped version number to " + newVersion + SUFFIX_RELEASE);
-		gitFlow.push("Pushing commit");
+		gitFlow.pushBranch(getBranchName());
 	}
 
 

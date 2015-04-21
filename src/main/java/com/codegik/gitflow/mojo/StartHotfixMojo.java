@@ -5,8 +5,8 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.GitFlow;
 import com.codegik.gitflow.mojo.util.BranchUtil;
+import com.codegik.gitflow.mojo.util.GitFlow;
 
 
 /**
@@ -36,7 +36,7 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
-		gitFlow.push("Pushing commit");
+		gitFlow.pushBranch(getBranchName());
 	}
 
 
