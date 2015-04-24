@@ -20,16 +20,26 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 	@Parameter( property = "branchName", required = true )
 	private String branchName;
 
+	@Parameter( property = "version" )
+	private String version;
+
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeBefore(gitFlow);
+		String newVersion = null;
+
+		if (getVersion() != null) {
+			gitFlow.validadePatternReleaseVersion(getVersion());
+			newVersion = getVersion() + SUFFIX_RELEASE;
+		}
 
 		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
-
+		validadeBefore(gitFlow);
 		gitFlow.createBranch(getBranchName());
 
-		String newVersion = gitFlow.increaseVersionBasedOnTag(getProject().getVersion());
+		if (newVersion == null) {
+			newVersion = gitFlow.increaseVersionBasedOnTag(getProject().getVersion());
+		}
 
 		updatePomVersion(newVersion);
 		compileProject();
@@ -71,6 +81,16 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 
 	public void setBranchName(String branchName) {
 		this.branchName = branchName;
+	}
+
+
+	public String getVersion() {
+		return version;
+	}
+
+
+	public void setVersion(String version) {
+		this.version = version;
 	}
 
 }

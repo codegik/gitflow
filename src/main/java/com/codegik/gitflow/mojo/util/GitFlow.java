@@ -183,7 +183,11 @@ public class GitFlow {
 			throw new MojoExecutionException("Please change to another branch before delete");
 		}
 
-		return gitExecutor.execute("branch", "-D", branchName);
+		if (findLocalBranch(branchName) != null) {
+			return gitExecutor.execute("branch", "-D", branchName);
+		}
+
+		return null;
 	}
 
 
@@ -259,6 +263,19 @@ public class GitFlow {
 		gitExecutor.execute("push", "--all", "origin");
 
 		return gitExecutor.execute("push", "--tags", "origin");
+	}
+
+
+	private Ref findLocalBranch(String branch) throws Exception {
+		getLog().info("Looking for local branch " + branch);
+
+		for (Ref b : getGit().branchList().call()) {
+			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
+				return b;
+			}
+		}
+
+		return null;
 	}
 
 
