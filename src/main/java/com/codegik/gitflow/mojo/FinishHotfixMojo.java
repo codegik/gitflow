@@ -27,17 +27,24 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 	@Parameter( property = "branchName", required = true )
     private String branchName;
 
+	@Parameter( property = "version" )
+	private String version;
+
 
 	@Override
 	public void run(GitFlow gitFlow) throws Exception {
-		validadeBefore(gitFlow);
-
 		String simpleName = getBranchName();
+		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
 
-		Ref hotfixRef = gitFlow.checkoutBranch(BranchUtil.buildHotfixBranchName(simpleName));
+		if (getVersion() != null) {
+			gitFlow.validadePatternReleaseVersion(getVersion());
+		}
 
-		setBranchName(BranchUtil.buildHotfixBranchName(simpleName));
+		if (gitFlow.findBranch(getBranchName()) == null) {
+			throw new MojoExecutionException("The branch " + getBranchName() + " dosen't exists!");
+		}
 
+		Ref hotfixRef = gitFlow.checkoutBranch(getBranchName());
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Buscar a ultima tag do master e incrementa a versao pois pode existir uma release entregue anteriormente
@@ -64,8 +71,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		gitFlow.reset(ORIGIN + SEPARATOR + MASTER);
 		gitFlow.deleteLocalBranch(getBranchName());
 
-		hotfixRef = gitFlow.findBranch(BranchUtil.buildHotfixBranchName(simpleName));
-
+		hotfixRef = gitFlow.findBranch(getBranchName());
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 
 		mergeGitFlow.setBranchName(MASTER);
@@ -84,13 +90,6 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteRemoteBranch(getBranchName());
 		gitFlow.pushAll();
-	}
-
-
-	private void validadeBefore(GitFlow gitFlow) throws Exception {
-		if (gitFlow.findBranch(getBranchName()) != null) {
-			throw new MojoExecutionException("The branch " + getBranchName() + " dosen't exists!");
-		}
 	}
 
 
@@ -122,6 +121,16 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 	public void setBranchName(String branchName) {
 		this.branchName = branchName;
+	}
+
+
+	public String getVersion() {
+		return version;
+	}
+
+
+	public void setVersion(String version) {
+		this.version = version;
 	}
 
 }
