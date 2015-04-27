@@ -26,7 +26,7 @@ public class GitFlow extends BaseGitFlow {
 
 
 	public GitFlow(Log log, CommandExecutor gitExecutor) {
-		super(log, gitExecutor, new File("."));
+		this(log, gitExecutor, new File("."));
 	}
 
 

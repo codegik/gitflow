@@ -29,11 +29,6 @@ public abstract class BaseGitFlow {
 	private CommandExecutor gitExecutor;
 
 
-	public BaseGitFlow(Log log, CommandExecutor gitExecutor) {
-		this(log, gitExecutor, new File("."));
-	}
-
-
 	public BaseGitFlow(Log log, CommandExecutor gitExecutor, File repository) {
 		this.log 		= log;
 		this.repository = repository;
