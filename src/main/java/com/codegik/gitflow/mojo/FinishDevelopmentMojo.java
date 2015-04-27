@@ -25,8 +25,8 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
     @Parameter( property = "fullBranchName", required = true )
     private String branchName;
 
-    @Parameter( property = "deleteBranchAfter", defaultValue = "false" )
-    private Boolean deleteBranchAfter;
+    @Parameter( property = "keepBranch", defaultValue = "true" )
+    private Boolean keepBranch;
 
 
 	@Override
@@ -50,9 +50,9 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 
 		gitFlow.merge(mergeGitFlow);
 		compileProject();
-		gitFlow.push("Pushing merge");
+		gitFlow.push();
 
-		if (deleteBranchAfter) {
+		if (!keepBranch) {
 			gitFlow.deleteRemoteBranch(getBranchName());
 		}
 	}

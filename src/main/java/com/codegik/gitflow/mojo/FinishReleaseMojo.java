@@ -42,7 +42,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
 		Ref lastTag = gitFlow.findLastTag(getVersion());
 		if (lastTag != null) {
-			getLog().info("Checking for most current tag");
+			getLog().info("Finding the newest tag");
 			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
 			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
@@ -52,9 +52,8 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 				updatePomVersion(newVersion);
 				compileProject();
 
-				getLog().info("Commiting changed files");
 				revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
-				gitFlow.push("Pushing commit");
+				gitFlow.push();
 				pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 			}
 		}
@@ -73,21 +72,20 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Cria a tag da release com base no develop
-		Ref newTag = gitFlow.tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
-		getLog().info("Commiting changed files");
+		Ref tag = gitFlow.tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
 		gitFlow.commit("[GitFlow::finish-release] Finish release branch " + getVersion());
-		gitFlow.pushAll();
+		gitFlow.push();
+		gitFlow.pushTag(tag);
 
 		// Volta para o branch da release
 		gitFlow.checkoutBranch(BranchUtil.getSimpleBranchName(releaseRef));
 
 		// Incrementa a versao baseado na tag
-		String newVersion = gitFlow.increaseVersionBasedOnTag(newTag);
+		String newVersion = gitFlow.increaseVersionBasedOnTag(tag);
 		updatePomVersion(newVersion);
 
-		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
-		gitFlow.pushAll();
+		gitFlow.push();
 	}
 
 
@@ -99,12 +97,11 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 			if (pomVersion != null) {
 				gitFlow.deleteTag(pomVersion);
-				gitFlow.pushAll();
 			}
 
 			if (revertCommit != null) {
 				gitFlow.revertCommit(revertCommit);
-				gitFlow.push("Pushing revert commit");
+				gitFlow.push();
 			}
 
 		} catch (Exception e1) {;}

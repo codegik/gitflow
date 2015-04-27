@@ -57,9 +57,10 @@ public class InitMojo extends AbstractGitFlowMojo {
 		updatePomVersion(newVersion);
 		compileProject();
 
+		Ref tag = gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
 		gitFlow.commit("[GitFlow::init] Bumped version number to " + newVersion);
-		gitFlow.tag(newVersion, "[GitFlow::init] Create tag " + newVersion);
-		gitFlow.pushAll();
+		gitFlow.push();
+		gitFlow.pushTag(tag);
 
 		getLog().info("Now your repository is ready to start a release");
 	}

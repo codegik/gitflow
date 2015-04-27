@@ -235,6 +235,7 @@ public class GitFlow {
 
 
 	public RevCommit commit(String message) throws Exception {
+		getLog().info("Commiting... " + message);
 		getGit().add().addFilepattern(".").call();
 		return getGit().commit().setAll(true).setMessage(message).call();
 	}
@@ -250,19 +251,17 @@ public class GitFlow {
 	}
 
 
-	public String push(String logMessage) throws Exception {
-		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
+	public String pushTag(Ref tag) throws Exception {
+		getLog().info("Pushing Tag " + tag.getName());
 
-		return gitExecutor.execute("push");
+		return gitExecutor.execute("push", "origin", BranchUtil.getVersionFromTag(tag));
 	}
 
 
-	public String pushAll() throws Exception {
-		getLog().info("Pushing all");
+	public String push() throws Exception {
+		getLog().info("Pushing commit");
 
-		gitExecutor.execute("push", "--all", "origin");
-
-		return gitExecutor.execute("push", "--tags", "origin");
+		return gitExecutor.execute("push");
 	}
 
 
@@ -311,11 +310,12 @@ public class GitFlow {
 	 * @throws Exception
 	 */
 	public Ref findLastTag(String releaseVersion) throws Exception {
-		final RevWalk walk = new RevWalk(getGit().getRepository());
-		List<Ref> tags = getGit().tagList().call();
+		final RevWalk walk 	= new RevWalk(getGit().getRepository());
+		List<Ref> tags 		= getGit().tagList().call();
 
+		// Filtra a lista de tags pela release informada
+		int i = 0;
 		if (releaseVersion != null) {
-			int i = 0;
 			while (i < tags.size()) {
 				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion)) {
 					tags.remove(i);
@@ -325,6 +325,17 @@ public class GitFlow {
 			}
 		}
 
+		// Filtra a lista de tags pelo padrao de nomenclatura
+		i = 0;
+		while (i < tags.size()) {
+			if (!TAG_VERSION_PATTERN.matcher(BranchUtil.getVersionFromTag(tags.get(i))).find()) {
+				tags.remove(i);
+				continue;
+			}
+			i++;
+		}
+
+		// Ordena a lista de tags baseado na data de criacao
 		Collections.sort(tags, new Comparator<Ref>() {
 			public int compare(Ref o1, Ref o2) {
 				Date d1 = null;
@@ -494,6 +505,7 @@ public class GitFlow {
 
 
 	public RevCommit revertCommit(RevCommit commit) throws Exception {
+		getLog().info("Reverting commit");
 		return getGit().revert().include(commit).setStrategy(MergeStrategy.OURS).call();
 	}
 
