@@ -30,7 +30,49 @@
 
 	<profiles>
 		<profile>
+			<id>uploadMavenTools</id>
+			<distributionManagement>
+				<repository>
+					<id>releases</id>
+					<name>RepositoryProxy</name>
+					<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/releases</url>
+				</repository>
+				<snapshotRepository>
+					<id>snapshots</id>
+					<name>RepositoryProxy</name>
+					<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/snapshots</url>
+				</snapshotRepository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>2.2.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>uploadMavenCentral</id>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>ossrh</id>
+					<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+				</snapshotRepository>
+				<repository>
+					<id>ossrh</id>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>
@@ -190,17 +232,6 @@
 			<version>3.7.0.201502260915-r</version>
 		</dependency>
 	</dependencies>
-
-	<distributionManagement>
-		<snapshotRepository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
-		<repository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		</repository>
-	</distributionManagement>
 
 	<developers>
 		<developer>
