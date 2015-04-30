@@ -82,7 +82,7 @@ public class GitFlow extends BaseGitFlow {
 		int i = 0;
 		if (releaseVersion != null) {
 			while (i < tags.size()) {
-				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion)) {
+				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion + ".")) {
 					tags.remove(i);
 					continue;
 				}

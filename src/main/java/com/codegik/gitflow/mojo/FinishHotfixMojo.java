@@ -85,7 +85,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 		Ref tag = gitFlow.tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
 		gitFlow.pushTag(tag);
-		gitFlow.checkoutBranchForced(DEVELOP);
+		gitFlow.checkoutBranch(DEVELOP);
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteRemoteBranch(getBranchName());
 		gitFlow.push();
