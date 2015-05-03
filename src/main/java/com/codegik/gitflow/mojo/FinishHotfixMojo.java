@@ -50,7 +50,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		// Buscar a ultima tag do master e incrementa a versao pois pode existir uma release entregue anteriormente
 		Ref lastTag = gitFlow.findLastTag();
 		if (lastTag != null) {
-			getLog().info("Checking for most current tag");
+			getLog().info("Finding the newest tag");
 			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
 			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
@@ -60,9 +60,8 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 				updatePomVersion(newVersion);
 				compileProject();
 
-				getLog().info("Commiting changed files");
 				revertCommit = gitFlow.commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
-				gitFlow.push("Pushing commit");
+				gitFlow.push();
 			}
 		}
 
@@ -84,12 +83,12 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
-		gitFlow.tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
-		gitFlow.pushAll();
-		gitFlow.checkoutBranchForced(DEVELOP);
+		Ref tag = gitFlow.tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
+		gitFlow.pushTag(tag);
+		gitFlow.checkoutBranch(DEVELOP);
 		gitFlow.merge(mergeGitFlow);
 		gitFlow.deleteRemoteBranch(getBranchName());
-		gitFlow.pushAll();
+		gitFlow.push();
 	}
 
 
@@ -103,7 +102,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 			if (revertCommit != null) {
 				 gitFlow.revertCommit(revertCommit);
-				 gitFlow.push("Pushing revert commit");
+				 gitFlow.push();
 			}
 
 			if (pomVersion != null) {

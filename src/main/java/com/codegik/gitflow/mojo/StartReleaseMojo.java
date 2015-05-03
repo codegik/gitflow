@@ -38,7 +38,6 @@ public class StartReleaseMojo extends AbstractGitFlowMojo {
 		updatePomVersion(newVersion + SUFFIX_RELEASE);
 		compileProject();
 
-		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-release] Create release branch " + getBranchName() + ": Bumped version number to " + newVersion + SUFFIX_RELEASE);
 		gitFlow.pushBranch(getBranchName());
 	}

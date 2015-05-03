@@ -48,13 +48,12 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		 */
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
 		compileProject();
-		gitFlow.push("Pushing merge");
+		gitFlow.push();
 
 		// Remove os branches de feature, bugfix e o branch da release
 		gitFlow.deleteRemoteBranch(getVersion(), BranchType.feature);
 		gitFlow.deleteRemoteBranch(getVersion(), BranchType.bugfix);
 		gitFlow.deleteRemoteBranch(BranchUtil.buildReleaseBranchName(getVersion()));
-		gitFlow.pushAll();
 	}
 
 

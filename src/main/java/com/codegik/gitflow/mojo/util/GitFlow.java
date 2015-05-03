@@ -7,7 +7,6 @@ import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -17,25 +16,13 @@ import java.util.regex.Matcher;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
-import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.merge.MergeStrategy;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 
-import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
 import com.codegik.gitflow.command.CommandExecutor;
 
 
-public class GitFlow {
-	private Git git;
-	private Log log;
-	private File repository;
-	private CommandExecutor gitExecutor;
+public class GitFlow extends BaseGitFlow {
 
 
 	public GitFlow(Log log, CommandExecutor gitExecutor) {
@@ -44,22 +31,7 @@ public class GitFlow {
 
 
 	public GitFlow(Log log, CommandExecutor gitExecutor, File repository) {
-		this.log 		= log;
-		this.repository = repository;
-		this.gitExecutor= gitExecutor;
-	}
-
-
-	public void setGit(Git git) {
-		this.git = git;
-	}
-
-	public Git getGit() throws Exception {
-		if (git == null) {
-			git = Git.open(repository);
-		}
-
-		return git;
+		super(log, gitExecutor, repository);
 	}
 
 
@@ -84,214 +56,6 @@ public class GitFlow {
 	}
 
 
-	public String getBranch() throws Exception {
-		return getGit().getRepository().getBranch();
-	}
-
-
-	public Ref tag(String tagName, String message) throws Exception {
-		getLog().info("Tagging " + tagName);
-		return getGit().tag().setName(tagName).setMessage(message).call();
-	}
-
-
-	public void merge(MergeGitFlow mergeGitFlow) throws Exception {
-		merge(mergeGitFlow, null);
-	}
-
-
-	public void merge(MergeGitFlow mergeGitFlow, MergeStrategy mergeStrategy) throws Exception {
-		getLog().info("Merging " + mergeGitFlow.getTargetRef().getName() + " into " + mergeGitFlow.getBranchName());
-
-		MergeResult mergeResult = null;
-
-		if (mergeStrategy == null) {
-			mergeResult = getGit().merge().include(mergeGitFlow.getTargetRef()).call();
-		} else {
-			mergeResult = getGit().merge().setStrategy(mergeStrategy).include(mergeGitFlow.getTargetRef()).call();
-		}
-
-		if (!mergeResult.getMergeStatus().isSuccessful()) {
-			processPreferentialConflicts(mergeGitFlow, mergeResult);
-		}
-	}
-
-
-	private void processPreferentialConflicts(MergeGitFlow mergeGitFlow, MergeResult merge) throws Exception {
-		List<String> toRemove = new ArrayList<String>();
-
-		for (String key : merge.getConflicts().keySet()) {
-			for (String file : mergeGitFlow.getIgnoringFiles()) {
-				if (key.contains(file)) {
-					checkoutFiles(mergeGitFlow.getBranchName(), key, mergeGitFlow.getIgnoringFilesStage());
-					toRemove.add(key);
-				}
-			}
-		}
-
-		for (String key : toRemove) {
-			merge.getConflicts().remove(key);
-		}
-
-		if (merge.getConflicts().size() > 0) {
-			throw buildConflictExeption(mergeGitFlow, merge);
-		}
-
-		commit("Commiting resolved conflicts");
-	}
-
-
-	public String deleteRemoteBranch(Ref branchRef) throws Exception {
-		String simpleName = BranchUtil.getSimpleBranchName(branchRef);
-
-		deleteLocalBranch(simpleName);
-
-		return gitExecutor.execute("push", "origin", ":" + simpleName);
-	}
-
-
-	public String deleteRemoteBranch(String branchName) throws Exception {
-		getLog().info("Deleting branch " + branchName);
-		Ref branchRef = findBranch(branchName);
-
-		if (branchRef == null) {
-			throw new MojoExecutionException("Branch " + branchName + " not found");
-		}
-
-		return deleteRemoteBranch(branchRef);
-	}
-
-
-	public void deleteRemoteBranch(String version, BranchType branchType) throws Exception {
-		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
-
-		String release = branchType.toString() + SEPARATOR + version;
-
-		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (b.getName().contains(release)) {
-				deleteRemoteBranch(b);
-				getLog().info(" > Deleted " + b.getName());
-			}
-		}
-	}
-
-
-	public String deleteLocalBranch(String branchName) throws Exception {
-		getLog().info("Deleting local branch " + branchName);
-
-		if (getBranch().equals(branchName)) {
-			throw new MojoExecutionException("Please change to another branch before delete");
-		}
-
-		if (findLocalBranch(branchName) != null) {
-			return gitExecutor.execute("branch", "-D", branchName);
-		}
-
-		return null;
-	}
-
-
-	public String deleteTag(String tagName) throws Exception {
-		return gitExecutor.execute("push", "origin", ":" + tagName);
-	}
-
-
-	public Ref reset(String branchName) throws Exception {
-		getLog().info("Reseting into " + branchName);
-		return getGit().reset().setMode(ResetType.HARD).setRef(branchName).call();
-	}
-
-
-	public Ref checkoutBranchForced(String branchName) throws Exception {
-		getLog().info("Checkout forced into " + branchName);
-		return getGit().checkout().setCreateBranch(false).setForce(true).setName(branchName).call();
-	}
-
-
-	public Ref checkoutBranch(String branchName) throws Exception {
-		getLog().info("Checkout into " + branchName);
-		Boolean branchExists = getGit().getRepository().getRef(branchName) != null;
-
-		if (!branchExists) {
-			getGit().branchCreate().setName(branchName).setUpstreamMode(SetupUpstreamMode.TRACK).setStartPoint("origin/" + branchName).call();
-		}
-
-		return getGit().checkout().setName(branchName).call();
-	}
-
-
-	public Ref checkoutFiles(String branchName, String file, Stage stage) throws Exception {
-		getLog().info("Updating file " + file + " from branch " + branchName + " using " + stage.toString());
-		Ref ref = getGit().checkout().addPath(file).setName(branchName).setCreateBranch(false).setStage(stage).call();
-		getGit().add().addFilepattern(file).call();
-		return ref;
-	}
-
-
-	public Ref createBranch(String branchName) throws Exception {
-		getLog().info("Creating branch " + branchName);
-		return getGit().checkout().setCreateBranch(true).setName(branchName).call();
-	}
-
-
-	public RevCommit commit(String message) throws Exception {
-		getGit().add().addFilepattern(".").call();
-		return getGit().commit().setAll(true).setMessage(message).call();
-	}
-
-
-	public String pull() throws Exception {
-		return gitExecutor.execute("pull");
-	}
-
-
-	public String pushBranch(String branchName) throws Exception {
-		return gitExecutor.execute("push", "--set-upstream", "origin", branchName);
-	}
-
-
-	public String push(String logMessage) throws Exception {
-		getLog().info(logMessage == null ? "Pushing commit" : logMessage);
-
-		return gitExecutor.execute("push");
-	}
-
-
-	public String pushAll() throws Exception {
-		getLog().info("Pushing all");
-
-		gitExecutor.execute("push", "--all", "origin");
-
-		return gitExecutor.execute("push", "--tags", "origin");
-	}
-
-
-	private Ref findLocalBranch(String branch) throws Exception {
-		getLog().info("Looking for local branch " + branch);
-
-		for (Ref b : getGit().branchList().call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/heads/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
-	}
-
-
-	public Ref findBranch(String branch) throws Exception {
-		getLog().info("Looking for branch " + branch);
-
-		for (Ref b : getGit().branchList().setListMode(ListMode.REMOTE).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
-				return b;
-			}
-		}
-
-		return null;
-	}
-
-
 	/**
 	 * Find last remote tag off repository
 	 *
@@ -311,13 +75,14 @@ public class GitFlow {
 	 * @throws Exception
 	 */
 	public Ref findLastTag(String releaseVersion) throws Exception {
-		final RevWalk walk = new RevWalk(getGit().getRepository());
-		List<Ref> tags = getGit().tagList().call();
+		final RevWalk walk 	= new RevWalk(getGit().getRepository());
+		List<Ref> tags 		= getGit().tagList().call();
 
+		// Filtra a lista de tags pela release informada
+		int i = 0;
 		if (releaseVersion != null) {
-			int i = 0;
 			while (i < tags.size()) {
-				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion)) {
+				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion + ".")) {
 					tags.remove(i);
 					continue;
 				}
@@ -325,6 +90,17 @@ public class GitFlow {
 			}
 		}
 
+		// Filtra a lista de tags pelo padrao de nomenclatura
+		i = 0;
+		while (i < tags.size()) {
+			if (!TAG_VERSION_PATTERN.matcher(BranchUtil.getVersionFromTag(tags.get(i))).find()) {
+				tags.remove(i);
+				continue;
+			}
+			i++;
+		}
+
+		// Ordena a lista de tags baseado na data de criacao
 		Collections.sort(tags, new Comparator<Ref>() {
 			public int compare(Ref o1, Ref o2) {
 				Date d1 = null;
@@ -340,24 +116,6 @@ public class GitFlow {
 		});
 
 		return tags.size() > 0 ? tags.get(tags.size()-1) : null;
-	}
-
-
-	public MojoExecutionException buildConflictExeption(MergeGitFlow mergeGitFlow, MergeResult merge) {
-		getLog().error("There is conflicts in the following files:");
-
-		for (String key : merge.getConflicts().keySet()) {
-			getLog().error(key);
-		}
-
-		String message = "\nThe merge has conflicts, please try resolve manually! [from " + mergeGitFlow.getTargetRef().getName() + " to " + mergeGitFlow.getBranchName() + "]";
-		message += "\nExecute the steps:";
-		message += "\ngit reset --hard " + mergeGitFlow.getBranchName();
-		message += "\ngit checkout " + mergeGitFlow.getBranchName();
-		message += "\ngit merge " + mergeGitFlow.getTargetRef().getName();
-		message += "\nmvn gitflow:" + mergeGitFlow.getErrorMessage();
-
-		return new MojoExecutionException(message);
 	}
 
 
@@ -490,16 +248,6 @@ public class GitFlow {
 		}
 
 		return intFirstVersion.compareTo(intSecondVersion);
-	}
-
-
-	public RevCommit revertCommit(RevCommit commit) throws Exception {
-		return getGit().revert().include(commit).setStrategy(MergeStrategy.OURS).call();
-	}
-
-
-	protected Log getLog() {
-		return log;
 	}
 
 }
