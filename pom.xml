@@ -33,13 +33,13 @@
 			<id>uploadMavenTools</id>
 			<distributionManagement>
 				<repository>
-					<id>releases</id>
-					<name>RepositoryProxy</name>
+					<id>tools</id>
+					<name>Repository Releases</name>
 					<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/releases</url>
 				</repository>
 				<snapshotRepository>
-					<id>snapshots</id>
-					<name>RepositoryProxy</name>
+					<id>tools</id>
+					<name>Repository Snapshots</name>
 					<url>http://mavenpoa.tools.com.br:8081/nexus/content/repositories/snapshots</url>
 				</snapshotRepository>
 			</distributionManagement>
