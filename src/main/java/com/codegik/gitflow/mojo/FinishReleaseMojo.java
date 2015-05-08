@@ -37,13 +37,20 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 			throw new MojoExecutionException("You must be on branch develop for execute this goal! ");
 		}
 
+		// Verifica se a release esta ultrapassada
 		pomVersion = getProject().getVersion();
+		Ref lastTag = gitFlow.findLastTag();
+		String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+
+		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer, Boolean.FALSE) < 0) {
+			throw new MojoExecutionException("The release " + getVersion() + " is older than " + lastTagVer + ", please start new release!");
+		}
 
 		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
-		Ref lastTag = gitFlow.findLastTag(getVersion());
+		lastTag = gitFlow.findLastTag(getVersion());
 		if (lastTag != null) {
 			getLog().info("Finding the newest tag");
-			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
 			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 				getLog().info("Found newer " + lastTagVer);
@@ -94,10 +101,6 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-
-			if (pomVersion != null) {
-				gitFlow.deleteTag(pomVersion);
-			}
 
 			if (revertCommit != null) {
 				gitFlow.revertCommit(revertCommit);

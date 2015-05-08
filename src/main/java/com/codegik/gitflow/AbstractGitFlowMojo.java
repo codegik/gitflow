@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.settings.Settings;
@@ -35,10 +34,10 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	public static final String SEPARATOR = "/";
 	public static final String FILE_POM = "pom.xml";
 
-    @Component
+    @Parameter( defaultValue = "${project}", readonly = true )
     private MavenProject project;
 
-    @Component
+    @Parameter( defaultValue = "${settings}", readonly = true )
     private Settings settings;
 
     @Parameter( property = "skipTests" )
