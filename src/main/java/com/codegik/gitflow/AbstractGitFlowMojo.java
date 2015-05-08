@@ -1,13 +1,16 @@
 package com.codegik.gitflow;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.settings.Settings;
+import org.codehaus.plexus.util.StringUtils;
 
 import com.codegik.gitflow.command.CommandExecutor;
 import com.codegik.gitflow.command.GitCommandExecutor;
@@ -31,8 +34,11 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 	public static final String SEPARATOR = "/";
 	public static final String FILE_POM = "pom.xml";
 
-    @Component
+    @Parameter( defaultValue = "${project}", readonly = true )
     private MavenProject project;
+
+    @Parameter( defaultValue = "${settings}", readonly = true )
+    private Settings settings;
 
     @Parameter( property = "skipTests" )
     private Boolean skipTests;
@@ -68,12 +74,20 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	public String compileProject() throws Exception {
 		getLog().info("Compiling project...");
+		List<String> args = new ArrayList<String>();
+		args.add("clean");
+		args.add("install");
 
 		if (Boolean.TRUE.equals(getSkipTests())) {
-			return mvnExecutor.execute("clean", "install", "-DskipTests");
+			args.add("-DskipTests");
 		}
 
-		return mvnExecutor.execute("clean", "install");
+		if (getSettings().getActiveProfiles() != null) {
+			args.add("-P");
+			args.add(StringUtils.join(getSettings().getActiveProfiles().iterator(), ","));
+		}
+
+		return mvnExecutor.execute(args.toArray(new String[args.size()]));
 	}
 
 
@@ -92,6 +106,14 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	public void setSkipTests(Boolean skipTests) {
 		this.skipTests = skipTests;
+	}
+
+	public Settings getSettings() {
+		return settings;
+	}
+
+	public void setSettings(Settings settings) {
+		this.settings = settings;
 	}
 
 }

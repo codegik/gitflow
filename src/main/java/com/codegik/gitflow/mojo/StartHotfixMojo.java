@@ -44,7 +44,6 @@ public class StartHotfixMojo extends AbstractGitFlowMojo {
 		updatePomVersion(newVersion);
 		compileProject();
 
-		getLog().info("Commiting changed files");
 		gitFlow.commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
 		gitFlow.pushBranch(getBranchName());
 	}

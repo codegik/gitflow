@@ -31,6 +31,9 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 
 		// Busca ultima tag da release
 		Ref tagRef = gitFlow.findLastTag(getVersion());
+		if (tagRef == null) {
+			throw new MojoExecutionException("The release " + getVersion() + " was never finished, please execute finish-release goal before!");
+		}
 
 		// Realiza o merge da tag para o master (using theirs)
 		gitFlow.checkoutBranch(MASTER);
@@ -48,13 +51,12 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		 */
 		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
 		compileProject();
-		gitFlow.push("Pushing merge");
+		gitFlow.push();
 
 		// Remove os branches de feature, bugfix e o branch da release
 		gitFlow.deleteRemoteBranch(getVersion(), BranchType.feature);
 		gitFlow.deleteRemoteBranch(getVersion(), BranchType.bugfix);
 		gitFlow.deleteRemoteBranch(BranchUtil.buildReleaseBranchName(getVersion()));
-		gitFlow.pushAll();
 	}
 
 
