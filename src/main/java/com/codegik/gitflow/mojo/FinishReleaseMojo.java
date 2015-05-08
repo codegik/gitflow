@@ -42,7 +42,7 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		Ref lastTag = gitFlow.findLastTag();
 		String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
-		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
+		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer, Boolean.FALSE) < 0) {
 			throw new MojoExecutionException("The release " + getVersion() + " is older than " + lastTagVer + ", please start new release!");
 		}
 

@@ -227,7 +227,24 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
-		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + "?");
+		return whatIsTheBigger(firstVersion, secondVersion, Boolean.TRUE);
+	}
+
+
+	/**
+	 * Returns
+	 * The value 0 if firstVersion is equal to the secondVersion
+	 * A value less than 0 if firstVersion is numerically less than the secondVersion
+	 * A value greater than 0 if firstVersion is numerically greater than the secondVersion
+	 *
+	 * @param firstVersion - The first version to compare
+	 * @param secondVersion - The first version to compare
+	 * @param fullValidation - Flag to validate the full version (1.2.3) or just release (1.2)
+	 * @return Integer
+	 * @throws Exception
+	 */
+	public Integer whatIsTheBigger(String firstVersion, String secondVersion, Boolean fullValidation) throws Exception {
+		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + " (fullValidation=" + fullValidation + ")?");
 		Matcher matcherFirstVersion 	= TAG_VERSION_PATTERN.matcher(firstVersion);
 		Matcher matcherSecondVersion 	= TAG_VERSION_PATTERN.matcher(secondVersion);
 
@@ -242,12 +259,13 @@ public class GitFlow extends BaseGitFlow {
 		Integer intFirstVersion 	= new Integer(matcherFirstVersion.group(2));
 		Integer intSecondVersion 	= new Integer(matcherSecondVersion.group(2));
 
-		if (intFirstVersion.compareTo(intSecondVersion) == 0) {
-			intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
-			intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
+		if (Boolean.TRUE.equals(fullValidation)) {
+			if (intFirstVersion.compareTo(intSecondVersion) == 0) {
+				intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
+				intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
+			}
 		}
 
 		return intFirstVersion.compareTo(intSecondVersion);
 	}
-
 }

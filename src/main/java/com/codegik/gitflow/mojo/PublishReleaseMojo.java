@@ -31,6 +31,9 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 
 		// Busca ultima tag da release
 		Ref tagRef = gitFlow.findLastTag(getVersion());
+		if (tagRef == null) {
+			throw new MojoExecutionException("The release " + getVersion() + " was never finished, please execute finish-release goal before!");
+		}
 
 		// Realiza o merge da tag para o master (using theirs)
 		gitFlow.checkoutBranch(MASTER);
