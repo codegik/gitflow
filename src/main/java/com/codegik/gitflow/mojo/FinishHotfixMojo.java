@@ -80,6 +80,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 
 		gitFlow.merge(mergeGitFlow);
 		compileProject();
+		gitFlow.push();
 
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
