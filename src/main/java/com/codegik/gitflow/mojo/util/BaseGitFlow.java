@@ -247,7 +247,7 @@ public abstract class BaseGitFlow {
 		getLog().info("Looking for branch " + branch);
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.REMOTE).call()) {
-			if (branch.equals(b.getName().toLowerCase().replace("refs/remotes/origin/", ""))) {
+			if (branch.equals(BranchUtil.getSimpleBranchName(b))) {
 				return b;
 			}
 		}
