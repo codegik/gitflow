@@ -42,6 +42,11 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 		Ref lastTag = gitFlow.findLastTag();
 		String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
 
+		/**
+		 * TODO
+		 * Arrumar aqui, a comparacao de versoes nao pode ser esta, deve ser a release (1.2) com a tag (1.5.4)
+		 * Continuar a configuracao no jenkins...
+		 */
 		if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer, Boolean.FALSE) < 0) {
 			throw new MojoExecutionException("The release " + getVersion() + " is older than " + lastTagVer + ", please start new release!");
 		}
