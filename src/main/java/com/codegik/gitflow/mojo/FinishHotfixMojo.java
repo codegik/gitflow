@@ -66,7 +66,7 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 		}
 
 		// Checkout para o branch master para fazer o merge com o branch do hotfix
-		gitFlow.checkoutBranchForced(MASTER);
+		gitFlow.checkoutBranch(MASTER);
 		gitFlow.reset(ORIGIN + SEPARATOR + MASTER);
 		gitFlow.deleteLocalBranch(getBranchName());
 
