@@ -77,27 +77,27 @@ public class GitFlow extends BaseGitFlow {
 	public Ref findLastTag(String releaseVersion) throws Exception {
 		final RevWalk walk 	= new RevWalk(getGit().getRepository());
 		List<Ref> tags 		= getGit().tagList().call();
+		int index 			= 0;
 
 		// Filtra a lista de tags pela release informada
-		int i = 0;
 		if (releaseVersion != null) {
-			while (i < tags.size()) {
-				if (!tags.get(i).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion + ".")) {
-					tags.remove(i);
+			while (index < tags.size()) {
+				if (!tags.get(index).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion + ".")) {
+					tags.remove(index);
 					continue;
 				}
-				i++;
+				index++;
 			}
 		}
 
 		// Filtra a lista de tags pelo padrao de nomenclatura
-		i = 0;
-		while (i < tags.size()) {
-			if (!TAG_VERSION_PATTERN.matcher(BranchUtil.getVersionFromTag(tags.get(i))).find()) {
-				tags.remove(i);
+		index = 0;
+		while (index < tags.size()) {
+			if (!TAG_VERSION_PATTERN.matcher(BranchUtil.getVersionFromTag(tags.get(index))).find()) {
+				tags.remove(index);
 				continue;
 			}
-			i++;
+			index++;
 		}
 
 		// Ordena a lista de tags baseado na data de criacao
@@ -197,6 +197,21 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public Stage defineStageForMerge(String currentVersion, String releaseBranchVersion) throws Exception {
+		return Boolean.TRUE.equals(isCurrentVersionSmallerThanRelease(currentVersion, releaseBranchVersion)) ? Stage.THEIRS : Stage.OURS;
+	}
+
+
+	/**
+	 * Returns true if currentVersion smaller than releaseBranchVersion or returns false otherwise
+	 *
+	 * @param currentVersion - The current version of pom.xml to compare
+	 * @param releaseBranchVersion - The release version to compare
+	 * @return Boolean
+	 * @throws Exception
+	 */
+	public Boolean isCurrentVersionSmallerThanRelease(String currentVersion, String releaseBranchVersion) throws Exception {
+		getLog().info("Is currentVersion smaller than release " + currentVersion + " -> " + releaseBranchVersion + "?");
+
 		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
 		Matcher matcherReleaseBranchVersion = RELEASE_VERSION_PATTERN.matcher(releaseBranchVersion);
 
@@ -211,7 +226,7 @@ public class GitFlow extends BaseGitFlow {
 		Integer currVersion 	= new Integer(matcherCurrentVersion.group(2));
 		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
 
-		return currVersion < releaseVersion ? Stage.THEIRS : Stage.OURS;
+		return currVersion < releaseVersion;
 	}
 
 
@@ -227,24 +242,8 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
-		return whatIsTheBigger(firstVersion, secondVersion, Boolean.TRUE);
-	}
+		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + "?");
 
-
-	/**
-	 * Returns
-	 * The value 0 if firstVersion is equal to the secondVersion
-	 * A value less than 0 if firstVersion is numerically less than the secondVersion
-	 * A value greater than 0 if firstVersion is numerically greater than the secondVersion
-	 *
-	 * @param firstVersion - The first version to compare
-	 * @param secondVersion - The first version to compare
-	 * @param fullValidation - Flag to validate the full version (1.2.3) or just release (1.2)
-	 * @return Integer
-	 * @throws Exception
-	 */
-	public Integer whatIsTheBigger(String firstVersion, String secondVersion, Boolean fullValidation) throws Exception {
-		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + " (fullValidation=" + fullValidation + ")?");
 		Matcher matcherFirstVersion 	= TAG_VERSION_PATTERN.matcher(firstVersion);
 		Matcher matcherSecondVersion 	= TAG_VERSION_PATTERN.matcher(secondVersion);
 
@@ -259,11 +258,9 @@ public class GitFlow extends BaseGitFlow {
 		Integer intFirstVersion 	= new Integer(matcherFirstVersion.group(2));
 		Integer intSecondVersion 	= new Integer(matcherSecondVersion.group(2));
 
-		if (Boolean.TRUE.equals(fullValidation)) {
-			if (intFirstVersion.compareTo(intSecondVersion) == 0) {
-				intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
-				intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
-			}
+		if (intFirstVersion.compareTo(intSecondVersion) == 0) {
+			intFirstVersion 	= new Integer(matcherFirstVersion.group(3));
+			intSecondVersion 	= new Integer(matcherSecondVersion.group(3));
 		}
 
 		return intFirstVersion.compareTo(intSecondVersion);
