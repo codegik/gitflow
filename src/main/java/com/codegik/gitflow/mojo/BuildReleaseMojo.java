@@ -50,19 +50,8 @@ public class BuildReleaseMojo extends AbstractGitFlowMojo {
 		gitFlow.merge(mergeGitFlow);
 		compileProject();
 
-		// Recarrega a versao do pom
-		String pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
-
 		// Commit do merge
 		gitFlow.commit("[GitFlow::build-release] Build release branch " + getVersion());
-		gitFlow.push();
-
-		// Incrementa a versao baseado no pom
-		String newVersion = gitFlow.increaseVersionBasedOnTag(pomVersion);
-		updatePomVersion(newVersion);
-
-		// Commit da alteracao da versao do pom
-		gitFlow.commit("[GitFlow::build-release] Bumped version number to " + newVersion);
 		gitFlow.push();
 	}
 

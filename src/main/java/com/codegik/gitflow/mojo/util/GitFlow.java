@@ -186,10 +186,7 @@ public class GitFlow extends BaseGitFlow {
 
 
 	/**
-	 * Returns
-	 * The value 0 if currentVersion is equal to the releaseBranchVersion
-	 * A value less than 0 if currentVersion is numerically less than the releaseBranchVersion
-	 * A value greater than 0 if currentVersion is numerically greater than the releaseBranchVersion
+	 * Returns Stage.OURS if releaseBranchVersion is smaller than currentVersion or returns Stage.THEIRS otherwise
 	 *
 	 * @param currentVersion - The current version of pom.xml to compare
 	 * @param releaseBranchVersion - The release version to compare
@@ -197,20 +194,20 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public Stage defineStageForMerge(String currentVersion, String releaseBranchVersion) throws Exception {
-		return Boolean.TRUE.equals(isCurrentVersionSmallerThanRelease(currentVersion, releaseBranchVersion)) ? Stage.THEIRS : Stage.OURS;
+		return Boolean.TRUE.equals(isReleaseSmallerThanCurrentVersion(releaseBranchVersion, currentVersion)) ? Stage.OURS : Stage.THEIRS;
 	}
 
 
 	/**
-	 * Returns true if currentVersion smaller than releaseBranchVersion or returns false otherwise
+	 * Returns true if releaseBranchVersion is smaller than currentVersion or returns false otherwise
 	 *
-	 * @param currentVersion - The current version of pom.xml to compare
 	 * @param releaseBranchVersion - The release version to compare
+	 * @param currentVersion - The current version of pom.xml to compare
 	 * @return Boolean
 	 * @throws Exception
 	 */
-	public Boolean isCurrentVersionSmallerThanRelease(String currentVersion, String releaseBranchVersion) throws Exception {
-		getLog().info("Is currentVersion smaller than release " + currentVersion + " -> " + releaseBranchVersion + "?");
+	public Boolean isReleaseSmallerThanCurrentVersion(String releaseBranchVersion, String currentVersion) throws Exception {
+		getLog().info("Is release smaller than currentVersion " + releaseBranchVersion + " -> " + currentVersion + "?");
 
 		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
 		Matcher matcherReleaseBranchVersion = RELEASE_VERSION_PATTERN.matcher(releaseBranchVersion);
@@ -226,7 +223,7 @@ public class GitFlow extends BaseGitFlow {
 		Integer currVersion 	= new Integer(matcherCurrentVersion.group(2));
 		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
 
-		return currVersion < releaseVersion;
+		return releaseVersion < currVersion;
 	}
 
 
