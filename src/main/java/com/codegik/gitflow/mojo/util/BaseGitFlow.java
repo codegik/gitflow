@@ -135,7 +135,6 @@ public abstract class BaseGitFlow {
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
 			if (b.getName().contains(release)) {
 				deleteRemoteBranch(b);
-				getLog().info(" > Deleted " + b.getName());
 			}
 		}
 	}
