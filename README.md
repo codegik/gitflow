@@ -15,7 +15,7 @@ Besides, there are two testing phases, one is held before delivering to the cust
 
 The plugin is available from Maven central.
 
-```
+```xml
 <build>
    <plugins>
       <plugin>
