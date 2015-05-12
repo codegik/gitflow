@@ -16,8 +16,6 @@ Besides, there are two testing phases, one is held before delivering to the cust
 The plugin is available from Maven central.
 
 ```
-#!xml
-
 <build>
    <plugins>
       <plugin>
@@ -32,8 +30,6 @@ The plugin is available from Maven central.
 # Goals Overview
 
 ```
-#!maven
-
 gitflow:init
 ```
 - Is not necessary execute this goal unless you want plugin do it for you.
@@ -45,8 +41,6 @@ gitflow:init
 
 
 ```
-#!maven
-
 gitflow:start-release
 ```
 - To execute this goal the current branch must be **develop**.
@@ -55,8 +49,6 @@ gitflow:start-release
 
 
 ```
-#!maven
-
 gitflow:finish-release
 ```
 - To execute this goal the current branch must be **develop**.
@@ -67,8 +59,6 @@ gitflow:finish-release
 
 
 ```
-#!maven
-
 gitflow:start-development
 ```
 - Start new development branch from **release**.
@@ -78,8 +68,6 @@ gitflow:start-development
 
 
 ```
-#!maven
-
 gitflow:finish-development
 ```
 - Merge branch **development** into **release**.
@@ -88,8 +76,6 @@ gitflow:finish-development
 
 
 ```
-#!maven
-
 gitflow:start-hotfix
 ```
 - Start new **hotfix** branch from **master**.
@@ -98,8 +84,6 @@ gitflow:start-hotfix
 
 
 ```
-#!maven
-
 gitflow:finish-hotfix
 ```
 - Merge **hotfix** branch into **develop** and **master**.
@@ -108,8 +92,6 @@ gitflow:finish-hotfix
 
 
 ```
-#!maven
-
 gitflow:publish-release
 ```
 - After the **release** was tested by **team** and **customer**, finally the release will be published on branch **master**.
@@ -119,8 +101,6 @@ gitflow:publish-release
 
 
 ```
-#!maven
-
 gitflow:build-release
 ```
 - While the first release is coming out, the other release also need to be tested.
