@@ -82,7 +82,7 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 			args.add("-DskipTests");
 		}
 
-		if (getSettings().getActiveProfiles() != null) {
+		if (getSettings().getActiveProfiles() != null && getSettings().getActiveProfiles().size() > 0) {
 			args.add("-P");
 			args.add(StringUtils.join(getSettings().getActiveProfiles().iterator(), ","));
 		}
