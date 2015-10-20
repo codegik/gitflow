@@ -220,10 +220,15 @@ public class GitFlow extends BaseGitFlow {
 			throw new MojoExecutionException("The releaseBranchVersion " + releaseBranchVersion + " does not match with pattern " + RELEASE_VERSION_PATTERN.toString());
 		}
 
-		Integer currVersion 	= new Integer(matcherCurrentVersion.group(2));
-		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
+		Integer currVersion 	= new Integer(matcherCurrentVersion.group(1));
+		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(1));
+		
+		if (releaseVersion == currVersion) {
+			currVersion 	= new Integer(matcherCurrentVersion.group(2));
+			releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
+		}
 
-		return releaseVersion < currVersion;
+		return releaseVersion <= currVersion;
 	}
 
 
