@@ -130,11 +130,13 @@ public abstract class BaseGitFlow {
 	public void deleteRemoteBranch(String version, BranchType branchType) throws Exception {
 		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
 
+		List<String> deleted = new ArrayList<String>();
 		String release = branchType.toString() + SEPARATOR + version;
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (b.getName().contains(release)) {
+			if (b.getName().contains(release) && !deleted.contains(BranchUtil.getSimpleBranchName(b))) {
 				deleteRemoteBranch(b);
+				deleted.add(BranchUtil.getSimpleBranchName(b));
 			}
 		}
 	}
