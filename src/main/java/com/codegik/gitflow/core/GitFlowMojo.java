@@ -1,8 +1,7 @@
-package com.codegik.gitflow;
+package com.codegik.gitflow.core;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -13,26 +12,11 @@ import org.apache.maven.settings.Settings;
 import org.codehaus.plexus.util.StringUtils;
 
 import com.codegik.gitflow.command.CommandExecutor;
-import com.codegik.gitflow.command.GitCommandExecutor;
 import com.codegik.gitflow.command.MvnCommandExecutor;
-import com.codegik.gitflow.mojo.util.GitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlow;
 
 
-public abstract class AbstractGitFlowMojo extends AbstractMojo {
-
-	public enum BranchType { feature, bugfix }
-
-	protected static final String ORIGIN = "origin";
-	protected static final String MASTER = "master";
-	protected static final String DEVELOP = "develop";
-	protected static final String SUFFIX_RELEASE = ".0";
-	public static final String PREFIX_HOTFIX = "hotfix";
-	public static final String PREFIX_TAG = "refs/tags";
-	public static final String PREFIX_RELEASE = "release";
-	public static final Pattern TAG_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})\\.([0-9]{1,})");
-	public static final Pattern RELEASE_VERSION_PATTERN = Pattern.compile("([0-9]{1,})\\.([0-9]{1,})");
-	public static final String SEPARATOR = "/";
-	public static final String FILE_POM = "pom.xml";
+public abstract class GitFlowMojo extends AbstractMojo {
 
     @Parameter( defaultValue = "${project}", readonly = true )
     private MavenProject project;
@@ -44,24 +28,22 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
     private Boolean skipTests;
 
     private CommandExecutor mvnExecutor;
-    private CommandExecutor gitExecutor;
 
+    public abstract DefaultGitFlow getGitFlow();
+    
+    public abstract void run() throws Exception;
 
-    public abstract void run(GitFlow gitFlow) throws Exception;
-
-    public abstract void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException;
-
-
+    public abstract void rollback(Exception e) throws MojoExecutionException;
+    
+    
     public void execute() throws MojoExecutionException, MojoFailureException {
-    	mvnExecutor 	= new MvnCommandExecutor(getLog());
-    	gitExecutor 	= new GitCommandExecutor(getLog());
-    	GitFlow gitFlow = new GitFlow(getLog(), gitExecutor);
+    	mvnExecutor = new MvnCommandExecutor(getLog());
 
     	try {
-    		run(gitFlow);
+    		run();
     		getLog().info("DONE");
     	} catch (Exception e) {
-    		rollback(gitFlow, e);
+    		rollback(e);
     	}
     }
 
@@ -114,6 +96,14 @@ public abstract class AbstractGitFlowMojo extends AbstractMojo {
 
 	public void setSettings(Settings settings) {
 		this.settings = settings;
+	}
+
+	public CommandExecutor getMvnExecutor() {
+		return mvnExecutor;
+	}
+
+	public void setMvnExecutor(CommandExecutor mvnExecutor) {
+		this.mvnExecutor = mvnExecutor;
 	}
 
 }

@@ -1,17 +1,17 @@
-package com.codegik.gitflow.mojo.util;
+package com.codegik.gitflow.core;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
-
-import com.codegik.gitflow.AbstractGitFlowMojo;
 
 
 public class MergeGitFlow {
 	private String branchName;
 	private Ref targetRef;
-	private String[] ignoringFiles = {AbstractGitFlowMojo.FILE_POM};
+	private List<String> ignoringFiles = new ArrayList<String>();
 	private Stage ignoringFilesStage = Stage.OURS;
 	private String errorMessage;
 
@@ -28,11 +28,11 @@ public class MergeGitFlow {
 	public void setTargetRef(Ref targetRef) {
 		this.targetRef = targetRef;
 	}
-	public String[] getIgnoringFiles() {
+	public List<String> getIgnoringFiles() {
 		return ignoringFiles;
 	}
-	public void setIgnoringFiles(String... ignoringFiles) {
-		this.ignoringFiles = ignoringFiles;
+	public void addIgnoringFiles(String ignoringFile) {
+		this.ignoringFiles.add(ignoringFile);
 	}
 	public Stage getIgnoringFilesStage() {
 		return ignoringFilesStage;

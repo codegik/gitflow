@@ -7,10 +7,8 @@ import org.codehaus.mojo.versions.api.PomHelper;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
-import com.codegik.gitflow.mojo.util.MergeGitFlow;
+import com.codegik.gitflow.core.MergeGitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -21,7 +19,7 @@ import com.codegik.gitflow.mojo.util.MergeGitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-release", aggregator = true)
-public class FinishReleaseMojo extends AbstractGitFlowMojo {
+public class FinishReleaseMojo extends DefaultGitFlowMojo {
 	private String pomVersion;
 	private RevCommit revertCommit;
 
@@ -30,81 +28,82 @@ public class FinishReleaseMojo extends AbstractGitFlowMojo {
 
 
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
-		Ref releaseRef = gitFlow.validadeReleaseVersion(getVersion());
+	public void run() throws Exception {
+		Ref releaseRef = getGitFlow().validadeReleaseVersion(getVersion());
 
-		if (!gitFlow.getBranch().equals(DEVELOP)) {
+		if (!getGitFlow().getBranch().equals(getGitFlow().getGitFlowPattern().getDevelopName())) {
 			throw new MojoExecutionException("You must be on branch develop for execute this goal! ");
 		}
 
 		// Verifica se a release esta ultrapassada
 		pomVersion 			= getProject().getVersion();
-		Ref lastTag 		= gitFlow.findLastTag();
-		String lastTagVer 	= BranchUtil.getVersionFromTag(lastTag);
+		Ref lastTag 		= getGitFlow().findLastTag();
+		String lastTagVer 	= getGitFlow().getVersionFromTag(lastTag);
 
-		if (gitFlow.isReleaseSmallerThanCurrentVersion(getVersion(), lastTagVer)) {
+		if (getGitFlow().isReleaseSmallerThanCurrentVersion(getVersion(), lastTagVer)) {
 			throw new MojoExecutionException("The release " + getVersion() + " is older than " + lastTagVer + ", please start new release!");
 		}
 
 		// Buscar a ultima tag da release e incrementa a versao pois pode existir uma tag nova de hotfix
-		lastTag = gitFlow.findLastTag(getVersion());
+		lastTag = getGitFlow().findLastTag(getVersion());
 		if (lastTag != null) {
 			getLog().info("Finding the newest tag");
-			lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			lastTagVer = getGitFlow().getVersionFromTag(lastTag);
 
-			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
+			if (getGitFlow().whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 				getLog().info("Found newer " + lastTagVer);
 
-				String newVersion = gitFlow.increaseVersionBasedOnTag(lastTag);
+				String newVersion = getGitFlow().increaseVersionBasedOnTag(lastTag);
 				updatePomVersion(newVersion);
 				compileProject();
 
-				revertCommit = gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
-				gitFlow.push();
+				revertCommit = getGitFlow().commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
+				getGitFlow().push();
 				pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 			}
 		}
 
 		// Realiza o merge da release para o develop
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
-		mergeGitFlow.setBranchName(DEVELOP);
+		mergeGitFlow.setBranchName(getGitFlow().getGitFlowPattern().getDevelopName());
 		mergeGitFlow.setErrorMessage("finish-release -Dversion=" + getVersion());
 		mergeGitFlow.setTargetRef(releaseRef);
-		mergeGitFlow.setIgnoringFilesStage(gitFlow.defineStageForMerge(pomVersion, getVersion()));
+		mergeGitFlow.setIgnoringFilesStage(getGitFlow().defineStageForMerge(pomVersion, getVersion()));
+		mergeGitFlow.addIgnoringFiles(getGitFlow().getGitFlowPattern().getPomFileName());
 
-		gitFlow.merge(mergeGitFlow);
+		getGitFlow().merge(mergeGitFlow);
 		compileProject();
 
 		// Recarrega a versao do pom pois provavelmente deve ter alterada depois do merge
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Cria a tag da release com base no develop
-		Ref tag = gitFlow.tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
-		gitFlow.commit("[GitFlow::finish-release] Finish release branch " + getVersion());
-		gitFlow.push();
-		gitFlow.pushTag(tag);
+		Ref tag = getGitFlow().tag(pomVersion, "[GitFlow::finish-release] Create tag " + pomVersion);
+		getGitFlow().commit("[GitFlow::finish-release] Finish release branch " + getVersion());
+		getGitFlow().push();
+		getGitFlow().pushTag(tag);
 
 		// Volta para o branch da release
-		gitFlow.checkoutBranch(BranchUtil.getSimpleBranchName(releaseRef));
+		getGitFlow().checkoutBranch(getGitFlow().getSimpleBranchName(releaseRef));
 
 		// Incrementa a versao baseado na tag
-		String newVersion = gitFlow.increaseVersionBasedOnTag(tag);
+		String newVersion = getGitFlow().increaseVersionBasedOnTag(tag);
 		updatePomVersion(newVersion);
 
-		gitFlow.commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
-		gitFlow.push();
+		getGitFlow().commit("[GitFlow::finish-release] Bumped version number to " + newVersion);
+		getGitFlow().push();
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
 
 			if (revertCommit != null) {
-				gitFlow.revertCommit(revertCommit);
-				gitFlow.push();
+				getGitFlow().revertCommit(revertCommit);
+				getGitFlow().push();
 			}
 
 		} catch (Exception e1) {;}

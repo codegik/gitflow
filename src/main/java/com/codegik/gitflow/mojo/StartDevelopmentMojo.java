@@ -6,9 +6,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -18,39 +16,39 @@ import com.codegik.gitflow.mojo.util.GitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-development", aggregator = true)
-public class StartDevelopmentMojo extends AbstractGitFlowMojo {
+public class StartDevelopmentMojo extends DefaultGitFlowMojo {
 
     @Parameter( property = "fullBranchName", required = true )
     private String fullBranchName;
-
+    
 
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
-		Map<String, String> branchInfo 	= BranchUtil.validateFullBranchName(getFullBranchName());
+	public void run() throws Exception {
+		Map<String, String> branchInfo 	= getGitFlow().validateFullBranchName(getFullBranchName());
 		String version  				= branchInfo.get("version");
 
-		gitFlow.validadeReleaseVersion(version);
+		getGitFlow().validadeReleaseVersion(version);
 
-		if (gitFlow.findBranch(getFullBranchName()) != null) {
+		if (getGitFlow().findBranch(getFullBranchName()) != null) {
 			throw new MojoExecutionException("The branch " + getFullBranchName() + " already exists!");
 		}
 
 		compileProject();
 
-		gitFlow.checkoutBranch(BranchUtil.buildReleaseBranchName(version));
-		gitFlow.createBranch(getFullBranchName());
-		gitFlow.pushBranch(getFullBranchName());
+		getGitFlow().checkoutBranch(getGitFlow().buildReleaseBranchName(version));
+		getGitFlow().createBranch(getFullBranchName());
+		getGitFlow().pushBranch(getFullBranchName());
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			gitFlow.reset(DEVELOP);
-			gitFlow.checkoutBranchForced(DEVELOP);
-			gitFlow.deleteLocalBranch(getFullBranchName());
+			getGitFlow().reset(getGitFlow().getGitFlowPattern().getDevelopName());
+			getGitFlow().checkoutBranchForced(getGitFlow().getGitFlowPattern().getDevelopName());
+			getGitFlow().deleteLocalBranch(getFullBranchName());
 		} catch (Exception e1) {;}
 		throw new MojoExecutionException("ERROR", e);
 	}

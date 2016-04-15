@@ -1,10 +1,11 @@
-package com.codegik.gitflow.mojo.util;
-
-import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
+package com.codegik.gitflow.core;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -18,21 +19,24 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import com.codegik.gitflow.AbstractGitFlowMojo.BranchType;
 import com.codegik.gitflow.command.CommandExecutor;
+import com.codegik.gitflow.command.GitCommandExecutor;
+import com.codegik.gitflow.core.impl.DefaultBranchType;
 
 
-public abstract class BaseGitFlow {
+public abstract class GitFlow {
 	private Git git;
 	private Log log;
 	private File repository;
 	private CommandExecutor gitExecutor;
+	private GitFlowPattern gitFlowPattern;
+	
 
-
-	public BaseGitFlow(Log log, CommandExecutor gitExecutor, File repository) {
-		this.log 		= log;
-		this.repository = repository;
-		this.gitExecutor= gitExecutor;
+	public GitFlow(GitFlowPattern gitFlowPattern, Log log, File repository) {
+		this.log 			= log;
+		this.repository 	= repository;
+		this.gitFlowPattern	= gitFlowPattern;
+		this.gitExecutor	= new GitCommandExecutor(log);
 	}
 
 
@@ -107,7 +111,7 @@ public abstract class BaseGitFlow {
 
 
 	public String deleteRemoteBranch(Ref branchRef) throws Exception {
-		String simpleName = BranchUtil.getSimpleBranchName(branchRef);
+		String simpleName = getSimpleBranchName(branchRef);
 
 		deleteLocalBranch(simpleName);
 
@@ -131,12 +135,12 @@ public abstract class BaseGitFlow {
 		getLog().info("Deleting " + branchType.toString() + " branch of release " + version);
 
 		List<String> deleted = new ArrayList<String>();
-		String release = branchType.toString() + SEPARATOR + version;
+		String release = branchType.toString() + gitFlowPattern.getGitSeparator() + version;
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.ALL).call()) {
-			if (b.getName().contains(release) && !deleted.contains(BranchUtil.getSimpleBranchName(b))) {
+			if (b.getName().contains(release) && !deleted.contains(getSimpleBranchName(b))) {
 				deleteRemoteBranch(b);
-				deleted.add(BranchUtil.getSimpleBranchName(b));
+				deleted.add(getSimpleBranchName(b));
 			}
 		}
 	}
@@ -220,7 +224,7 @@ public abstract class BaseGitFlow {
 	public String pushTag(Ref tag) throws Exception {
 		getLog().info("Pushing Tag " + tag.getName());
 
-		return gitExecutor.execute("push", "origin", BranchUtil.getVersionFromTag(tag));
+		return gitExecutor.execute("push", "origin", getVersionFromTag(tag));
 	}
 
 
@@ -248,7 +252,7 @@ public abstract class BaseGitFlow {
 		getLog().info("Looking for branch " + branch);
 
 		for (Ref b : getGit().branchList().setListMode(ListMode.REMOTE).call()) {
-			if (branch.equals(BranchUtil.getSimpleBranchName(b))) {
+			if (branch.equals(getSimpleBranchName(b))) {
 				return b;
 			}
 		}
@@ -280,9 +284,101 @@ public abstract class BaseGitFlow {
 		return getGit().revert().include(commit).setStrategy(MergeStrategy.OURS).call();
 	}
 
+	public String getSimpleBranchName(Ref ref) {
+		return replaceAll(ref);
+	}
+
+
+	public String replaceAll(Ref ref) {
+		String result = ref.getName();
+
+		for (String replace : getGitFlowPattern().getPrefixToReplace()) {
+			result = result.replace(replace, "");
+		}
+
+		return result;
+	}
+
+
+	public String getReleaseFromVersion(String fullVersion) {
+		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(fullVersion);
+
+		if (matcher.find()) {
+			return String.format("%s.%s", matcher.group(1), matcher.group(2));
+		}
+
+		return null;
+	}
+
+
+	public String getVersionFromTag(Ref tag) {
+		return tag.getName().replace(getGitFlowPattern().getPrefixGitTag() + getGitFlowPattern().getGitSeparator(), "");
+	}
+
+
+	public String buildDevBranchName(String branchType, String version, String branchName) {
+		return branchType + getGitFlowPattern().getGitSeparator() + version + getGitFlowPattern().getGitSeparator() + branchName;
+	}
+
+
+	public String buildReleaseBranchName(String version) {
+		return getGitFlowPattern().getPrefixGitRelease() + getGitFlowPattern().getGitSeparator() + version;
+	}
+
+
+	public String buildHotfixBranchName(String version, String branchName) {
+		return getGitFlowPattern().getPrefixGitHotfix() + getGitFlowPattern().getGitSeparator() + version + getGitFlowPattern().getGitSeparator() + branchName;
+	}
+
+
+	public String buildHotfixBranchName(String branchName) {
+		return getGitFlowPattern().getPrefixGitHotfix() + getGitFlowPattern().getGitSeparator() + branchName;
+	}
+
+
+	public String buildRemoteBranchName(Ref ref) {
+		return getGitFlowPattern().getPrefixGitHeads() + replaceAll(ref);
+	}
+
+
+	public List<String> branchTypeToArray() {
+		List<String> values = new ArrayList<String>();
+
+		for (DefaultBranchType type : DefaultBranchType.values()) {
+			values.add(type.name());
+		}
+
+		return values;
+	}
+
+
+	public Map<String, String> validateFullBranchName(String branchName) throws Exception {
+		String errorMessage 		= "The fullBranchName must be <branchType=[feature|bugfix]>/<releaseVersion>/<branchName>. EX: feature/1.1.0/issue3456";
+		String[] pattern 			= branchName.split("/");
+		Map<String, String> result 	= new HashMap<String, String>();
+
+		if (pattern.length != 3) {
+			throw new MojoExecutionException(errorMessage);
+		}
+
+		if (!branchTypeToArray().contains(pattern[0])) {
+			throw new MojoExecutionException(errorMessage);
+		}
+
+		result.put("branchType", pattern[0]);
+		result.put("version", pattern[1]);
+		result.put("branchName", pattern[2]);
+
+		return result;
+	}
+	
 
 	protected Log getLog() {
 		return log;
 	}
 
+	
+	public GitFlowPattern getGitFlowPattern() {
+		return gitFlowPattern;
+	}
 }

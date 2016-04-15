@@ -4,9 +4,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -15,59 +13,59 @@ import com.codegik.gitflow.mojo.util.GitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "start-hotfix", aggregator = true)
-public class StartHotfixMojo extends AbstractGitFlowMojo {
+public class StartHotfixMojo extends DefaultGitFlowMojo {
 
 	@Parameter( property = "branchName", required = true )
 	private String branchName;
 
 	@Parameter( property = "version" )
 	private String version;
-
+    
 
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
+	public void run() throws Exception {
 		String newVersion = null;
 
 		if (getVersion() != null) {
-			gitFlow.validadePatternReleaseVersion(getVersion());
-			newVersion = getVersion() + SUFFIX_RELEASE;
+			getGitFlow().validadePatternReleaseVersion(getVersion());
+			newVersion = getVersion() + getGitFlow().getGitFlowPattern().getSuffixRelease();
 		}
 
-		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
-		validadeBefore(gitFlow);
-		gitFlow.createBranch(getBranchName());
+		setBranchName(getGitFlow().buildHotfixBranchName(getBranchName()));
+		validadeBefore();
+		getGitFlow().createBranch(getBranchName());
 
 		if (newVersion == null) {
-			newVersion = gitFlow.increaseVersionBasedOnTag(getProject().getVersion());
+			newVersion = getGitFlow().increaseVersionBasedOnTag(getProject().getVersion());
 		}
 
 		updatePomVersion(newVersion);
 		compileProject();
 
-		gitFlow.commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
-		gitFlow.pushBranch(getBranchName());
+		getGitFlow().commit("[GitFlow::start-hotfix] Create hotfix branch " + getBranchName() + ": Bumped version number to " + newVersion);
+		getGitFlow().pushBranch(getBranchName());
 	}
 
 
-	private void validadeBefore(GitFlow gitFlow) throws Exception {
-		if (!gitFlow.getBranch().toLowerCase().equals(MASTER)) {
+	private void validadeBefore() throws Exception {
+		if (!getGitFlow().getBranch().toLowerCase().equals(getGitFlow().getGitFlowPattern().getMasterName())) {
 			throw new MojoExecutionException("You must be on branch master for execute this goal!");
 		}
 
-		if (gitFlow.findBranch(getBranchName()) != null) {
+		if (getGitFlow().findBranch(getBranchName()) != null) {
 			throw new MojoExecutionException("The branch " + getBranchName() + " already exists!");
 		}
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rollbacking all changes");
-			gitFlow.reset(MASTER);
-			gitFlow.checkoutBranchForced(MASTER);
-			gitFlow.deleteRemoteBranch(getBranchName());
+			getGitFlow().reset(getGitFlow().getGitFlowPattern().getMasterName());
+			getGitFlow().checkoutBranchForced(getGitFlow().getGitFlowPattern().getMasterName());
+			getGitFlow().deleteRemoteBranch(getBranchName());
 		} catch (Exception e1) {;}
 		throw new MojoExecutionException("ERROR", e);
 	}

@@ -8,10 +8,8 @@ import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
-import com.codegik.gitflow.mojo.util.MergeGitFlow;
+import com.codegik.gitflow.core.MergeGitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -20,7 +18,7 @@ import com.codegik.gitflow.mojo.util.MergeGitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-hotfix", aggregator = true)
-public class FinishHotfixMojo extends AbstractGitFlowMojo {
+public class FinishHotfixMojo extends DefaultGitFlowMojo {
 	private String pomVersion;
 	private RevCommit revertCommit;
 
@@ -30,84 +28,85 @@ public class FinishHotfixMojo extends AbstractGitFlowMojo {
 	@Parameter( property = "version" )
 	private String version;
 
-
+	
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
+	public void run() throws Exception {
 		String simpleName = getBranchName();
-		setBranchName(BranchUtil.buildHotfixBranchName(getBranchName()));
+		setBranchName(getGitFlow().buildHotfixBranchName(getBranchName()));
 
 		if (getVersion() != null) {
-			gitFlow.validadePatternReleaseVersion(getVersion());
+			getGitFlow().validadePatternReleaseVersion(getVersion());
 		}
 
-		if (gitFlow.findBranch(getBranchName()) == null) {
+		if (getGitFlow().findBranch(getBranchName()) == null) {
 			throw new MojoExecutionException("The branch " + getBranchName() + " dosen't exists!");
 		}
 
-		Ref hotfixRef = gitFlow.checkoutBranch(getBranchName());
+		Ref hotfixRef = getGitFlow().checkoutBranch(getBranchName());
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
 		// Buscar a ultima tag do master e incrementa a versao pois pode existir uma release entregue anteriormente
-		Ref lastTag = gitFlow.findLastTag();
+		Ref lastTag = getGitFlow().findLastTag();
 		if (lastTag != null) {
 			getLog().info("Finding the newest tag");
-			String lastTagVer = BranchUtil.getVersionFromTag(lastTag);
+			String lastTagVer = getGitFlow().getVersionFromTag(lastTag);
 
-			if (gitFlow.whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
+			if (getGitFlow().whatIsTheBigger(pomVersion, lastTagVer) <= 0) {
 				getLog().info("Found newer " + lastTagVer);
 
-				String newVersion = gitFlow.increaseVersionBasedOnTag(lastTag);
+				String newVersion = getGitFlow().increaseVersionBasedOnTag(lastTag);
 				updatePomVersion(newVersion);
 				compileProject();
 
-				revertCommit = gitFlow.commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
-				gitFlow.push();
+				revertCommit = getGitFlow().commit("[GitFlow::finish-hotfix] Bumped version number to " + newVersion);
+				getGitFlow().push();
 			}
 		}
 
 		// Checkout para o branch master para fazer o merge com o branch do hotfix
-		gitFlow.checkoutBranch(MASTER);
-		gitFlow.reset(ORIGIN + SEPARATOR + MASTER);
-		gitFlow.deleteLocalBranch(getBranchName());
+		getGitFlow().checkoutBranch(getGitFlow().getGitFlowPattern().getMasterName());
+		getGitFlow().reset(getGitFlow().getGitFlowPattern().getOriginName() + getGitFlow().getGitFlowPattern().getGitSeparator() + getGitFlow().getGitFlowPattern().getMasterName());
+		getGitFlow().deleteLocalBranch(getBranchName());
 
-		hotfixRef = gitFlow.findBranch(getBranchName());
+		hotfixRef = getGitFlow().findBranch(getBranchName());
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
 
-		mergeGitFlow.setBranchName(MASTER);
+		mergeGitFlow.setBranchName(getGitFlow().getGitFlowPattern().getMasterName());
 		mergeGitFlow.setErrorMessage("finish-hotfix -DbranchName=" + simpleName);
 		mergeGitFlow.setTargetRef(hotfixRef);
 		mergeGitFlow.setIgnoringFilesStage(Stage.THEIRS);
+		mergeGitFlow.addIgnoringFiles(getGitFlow().getGitFlowPattern().getPomFileName());
 
-		gitFlow.merge(mergeGitFlow);
+		getGitFlow().merge(mergeGitFlow);
 		compileProject();
-		gitFlow.push();
+		getGitFlow().push();
 
 		pomVersion = PomHelper.getVersion(PomHelper.getRawModel(getProject().getFile()));
 
-		Ref tag = gitFlow.tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
-		gitFlow.pushTag(tag);
-		gitFlow.checkoutBranch(DEVELOP);
-		gitFlow.merge(mergeGitFlow);
-		gitFlow.deleteRemoteBranch(getBranchName());
-		gitFlow.push();
+		Ref tag = getGitFlow().tag(pomVersion, "[GitFlow::finish-hotfix] Create tag " + pomVersion);
+		getGitFlow().pushTag(tag);
+		getGitFlow().checkoutBranch(getGitFlow().getGitFlowPattern().getDevelopName());
+		getGitFlow().merge(mergeGitFlow);
+		getGitFlow().deleteRemoteBranch(getBranchName());
+		getGitFlow().push();
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			gitFlow.reset(MASTER);
-			gitFlow.checkoutBranchForced(MASTER);
+			getGitFlow().reset(getGitFlow().getGitFlowPattern().getMasterName());
+			getGitFlow().checkoutBranchForced(getGitFlow().getGitFlowPattern().getMasterName());
 
 			if (revertCommit != null) {
-				 gitFlow.revertCommit(revertCommit);
-				 gitFlow.push();
+				getGitFlow().revertCommit(revertCommit);
+				getGitFlow().push();
 			}
 
 			if (pomVersion != null) {
-				gitFlow.deleteTag(pomVersion);
+				getGitFlow().deleteTag(pomVersion);
 			}
 		} catch (Exception e1) {;}
 		throw new MojoExecutionException("ERROR", e);

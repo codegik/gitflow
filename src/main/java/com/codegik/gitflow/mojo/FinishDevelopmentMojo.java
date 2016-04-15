@@ -8,10 +8,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
-import com.codegik.gitflow.mojo.util.MergeGitFlow;
+import com.codegik.gitflow.core.MergeGitFlow;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -20,23 +18,23 @@ import com.codegik.gitflow.mojo.util.MergeGitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "finish-development", aggregator = true)
-public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
+public class FinishDevelopmentMojo extends DefaultGitFlowMojo {
 
     @Parameter( property = "fullBranchName", required = true )
     private String branchName;
 
     @Parameter( property = "keepBranch", defaultValue = "true" )
     private Boolean keepBranch;
-
+    
 
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
-		Map<String, String> branchInfo 	= BranchUtil.validateFullBranchName(getBranchName());
-		String releaseBranch 			= BranchUtil.buildReleaseBranchName(branchInfo.get("version"));
+	public void run() throws Exception {
+		Map<String, String> branchInfo 	= getGitFlow().validateFullBranchName(getBranchName());
+		String releaseBranch 			= getGitFlow().buildReleaseBranchName(branchInfo.get("version"));
 
-		gitFlow.checkoutBranch(releaseBranch);
+		getGitFlow().checkoutBranch(releaseBranch);
 
-		Ref ref = gitFlow.findBranch(getBranchName());
+		Ref ref = getGitFlow().findBranch(getBranchName());
 
 		if (ref == null) {
 			throw new MojoExecutionException("The fullBranchName " + getBranchName() + " not found!");
@@ -47,19 +45,20 @@ public class FinishDevelopmentMojo extends AbstractGitFlowMojo {
 		mergeGitFlow.setErrorMessage("finish-development -DfullBranchName=" + getBranchName());
 		mergeGitFlow.setTargetRef(ref);
 		mergeGitFlow.setIgnoringFilesStage(Stage.OURS);
+		mergeGitFlow.addIgnoringFiles(getGitFlow().getGitFlowPattern().getPomFileName());
 
-		gitFlow.merge(mergeGitFlow);
+		getGitFlow().merge(mergeGitFlow);
 		compileProject();
-		gitFlow.push();
+		getGitFlow().push();
 
 		if (!keepBranch) {
-			gitFlow.deleteRemoteBranch(getBranchName());
+			getGitFlow().deleteRemoteBranch(getBranchName());
 		}
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		throw new MojoExecutionException("ERROR", e);
 	}
 

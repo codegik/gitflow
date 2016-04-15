@@ -1,9 +1,4 @@
-package com.codegik.gitflow.mojo.util;
-
-import static com.codegik.gitflow.AbstractGitFlowMojo.PREFIX_TAG;
-import static com.codegik.gitflow.AbstractGitFlowMojo.RELEASE_VERSION_PATTERN;
-import static com.codegik.gitflow.AbstractGitFlowMojo.SEPARATOR;
-import static com.codegik.gitflow.AbstractGitFlowMojo.TAG_VERSION_PATTERN;
+package com.codegik.gitflow.core.impl;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,25 +14,26 @@ import org.eclipse.jgit.api.CheckoutCommand.Stage;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevWalk;
 
-import com.codegik.gitflow.command.CommandExecutor;
+import com.codegik.gitflow.core.GitFlow;
+import com.codegik.gitflow.core.GitFlowPattern;
 
 
-public class GitFlow extends BaseGitFlow {
+public class DefaultGitFlow extends GitFlow {
+	
 
-
-	public GitFlow(Log log, CommandExecutor gitExecutor) {
-		this(log, gitExecutor, new File("."));
+	public DefaultGitFlow(GitFlowPattern gitFlowPattern, Log log) {
+		this(gitFlowPattern, log, new File("."));
 	}
 
 
-	public GitFlow(Log log, CommandExecutor gitExecutor, File repository) {
-		super(log, gitExecutor, repository);
+	public DefaultGitFlow(GitFlowPattern gitFlowPattern, Log log, File repository) {
+		super(gitFlowPattern, log, repository);
 	}
 
 
 	public void validadePatternReleaseVersion(String version) throws Exception {
-		if (!RELEASE_VERSION_PATTERN.matcher(version).find()) {
-			throw new MojoExecutionException("The version pattern is " + RELEASE_VERSION_PATTERN.toString() + "  EX: 1.3");
+		if (!getGitFlowPattern().getReleaseVersionPattern().matcher(version).find()) {
+			throw new MojoExecutionException("The version pattern is " + getGitFlowPattern().getReleaseVersionPattern().toString() + "  EX: 1.3");
 		}
 	}
 
@@ -45,7 +41,7 @@ public class GitFlow extends BaseGitFlow {
 	public Ref validadeReleaseVersion(String version) throws Exception {
 		validadePatternReleaseVersion(version);
 
-		String fullVersion = BranchUtil.buildReleaseBranchName(version);
+		String fullVersion = buildReleaseBranchName(version);
 		Ref ref = findBranch(fullVersion);
 
 		if (ref == null) {
@@ -82,7 +78,7 @@ public class GitFlow extends BaseGitFlow {
 		// Filtra a lista de tags pela release informada
 		if (releaseVersion != null) {
 			while (index < tags.size()) {
-				if (!tags.get(index).getName().startsWith(PREFIX_TAG + SEPARATOR + releaseVersion + ".")) {
+				if (!tags.get(index).getName().startsWith(getGitFlowPattern().getPrefixGitTag() + getGitFlowPattern().getGitSeparator() + releaseVersion + ".")) {
 					tags.remove(index);
 					continue;
 				}
@@ -93,7 +89,7 @@ public class GitFlow extends BaseGitFlow {
 		// Filtra a lista de tags pelo padrao de nomenclatura
 		index = 0;
 		while (index < tags.size()) {
-			if (!TAG_VERSION_PATTERN.matcher(BranchUtil.getVersionFromTag(tags.get(index))).find()) {
+			if (!getGitFlowPattern().getTagVersionPattern().matcher(getVersionFromTag(tags.get(index))).find()) {
 				tags.remove(index);
 				continue;
 			}
@@ -127,7 +123,7 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public String increaseVersion(String version) throws Exception {
-		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
+		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(version);
 
 		if (matcher.find()) {
 			Integer increment = new Integer(matcher.group(3));
@@ -135,7 +131,7 @@ public class GitFlow extends BaseGitFlow {
 			return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), increment.toString());
 		}
 
-		throw new MojoExecutionException("The version " + version + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+		throw new MojoExecutionException("The version " + version + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 	}
 
 
@@ -147,7 +143,7 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public String increaseVersionBasedOnTag(Ref lastTag) throws Exception {
-		return increaseVersionBasedOnTag(BranchUtil.getVersionFromTag(lastTag));
+		return increaseVersionBasedOnTag(getVersionFromTag(lastTag));
 	}
 
 
@@ -159,7 +155,7 @@ public class GitFlow extends BaseGitFlow {
 	 * @throws Exception
 	 */
 	public String increaseVersionBasedOnTag(String version) throws Exception {
-		Matcher matcher = TAG_VERSION_PATTERN.matcher(version);
+		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(version);
 
 		if (matcher.find()) {
 			String releaseVersion 	= String.format("%s.%s", matcher.group(1), matcher.group(2));
@@ -170,8 +166,8 @@ public class GitFlow extends BaseGitFlow {
 			if (lastTag == null) {
 				newVersion = matcher.group(3);
 			} else {
-				newVersion 	= BranchUtil.getVersionFromTag(lastTag);
-				matcher 	= TAG_VERSION_PATTERN.matcher(newVersion);
+				newVersion 	= getVersionFromTag(lastTag);
+				matcher 	= getGitFlowPattern().getTagVersionPattern().matcher(newVersion);
 				newVersion 	= matcher.find() ? matcher.group(3) : null;
 			}
 
@@ -181,7 +177,7 @@ public class GitFlow extends BaseGitFlow {
 			return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), increment.toString());
 		}
 
-		throw new MojoExecutionException("The version " + version + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+		throw new MojoExecutionException("The version " + version + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 	}
 
 
@@ -209,15 +205,15 @@ public class GitFlow extends BaseGitFlow {
 	public Boolean isReleaseSmallerThanCurrentVersion(String releaseBranchVersion, String currentVersion) throws Exception {
 		getLog().info("Is release smaller than currentVersion " + releaseBranchVersion + " -> " + currentVersion + "?");
 
-		Matcher matcherCurrentVersion 		= TAG_VERSION_PATTERN.matcher(currentVersion);
-		Matcher matcherReleaseBranchVersion = RELEASE_VERSION_PATTERN.matcher(releaseBranchVersion);
+		Matcher matcherCurrentVersion 		= getGitFlowPattern().getTagVersionPattern().matcher(currentVersion);
+		Matcher matcherReleaseBranchVersion = getGitFlowPattern().getReleaseVersionPattern().matcher(releaseBranchVersion);
 
 		if (!matcherCurrentVersion.find()) {
-			throw new MojoExecutionException("The currentVersion " + currentVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+			throw new MojoExecutionException("The currentVersion " + currentVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
 		if (!matcherReleaseBranchVersion.find()) {
-			throw new MojoExecutionException("The releaseBranchVersion " + releaseBranchVersion + " does not match with pattern " + RELEASE_VERSION_PATTERN.toString());
+			throw new MojoExecutionException("The releaseBranchVersion " + releaseBranchVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
 		Integer currVersion 	= new Integer(matcherCurrentVersion.group(1));
@@ -246,15 +242,15 @@ public class GitFlow extends BaseGitFlow {
 	public Integer whatIsTheBigger(String firstVersion, String secondVersion) throws Exception {
 		getLog().info("What is bigger " + firstVersion + " -> " + secondVersion + "?");
 
-		Matcher matcherFirstVersion 	= TAG_VERSION_PATTERN.matcher(firstVersion);
-		Matcher matcherSecondVersion 	= TAG_VERSION_PATTERN.matcher(secondVersion);
+		Matcher matcherFirstVersion 	= getGitFlowPattern().getTagVersionPattern().matcher(firstVersion);
+		Matcher matcherSecondVersion 	= getGitFlowPattern().getTagVersionPattern().matcher(secondVersion);
 
 		if (!matcherFirstVersion.find()) {
-			throw new MojoExecutionException("The firstVersion " + firstVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+			throw new MojoExecutionException("The firstVersion " + firstVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
 		if (!matcherSecondVersion.find()) {
-			throw new MojoExecutionException("The secondVersion " + secondVersion + " does not match with pattern " + TAG_VERSION_PATTERN.toString());
+			throw new MojoExecutionException("The secondVersion " + secondVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
 		Integer intFirstVersion 	= new Integer(matcherFirstVersion.group(2));

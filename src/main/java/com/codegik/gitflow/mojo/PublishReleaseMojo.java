@@ -6,10 +6,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.merge.MergeStrategy;
 
-import com.codegik.gitflow.AbstractGitFlowMojo;
-import com.codegik.gitflow.mojo.util.BranchUtil;
-import com.codegik.gitflow.mojo.util.GitFlow;
-import com.codegik.gitflow.mojo.util.MergeGitFlow;
+import com.codegik.gitflow.core.MergeGitFlow;
+import com.codegik.gitflow.core.impl.DefaultBranchType;
+import com.codegik.gitflow.core.impl.DefaultGitFlowMojo;
 
 
 /**
@@ -19,29 +18,30 @@ import com.codegik.gitflow.mojo.util.MergeGitFlow;
  * @author Inacio G Klassmann
  */
 @Mojo(name = "publish-release", aggregator = true)
-public class PublishReleaseMojo extends AbstractGitFlowMojo {
+public class PublishReleaseMojo extends DefaultGitFlowMojo {
 
     @Parameter( property = "version", required = true )
 	private String version;
-
+    
 
 	@Override
-	public void run(GitFlow gitFlow) throws Exception {
-		validadeBefore(gitFlow);
+	public void run() throws Exception {
+		validadeBefore();
 
 		// Busca ultima tag da release
-		Ref tagRef = gitFlow.findLastTag(getVersion());
+		Ref tagRef = getGitFlow().findLastTag(getVersion());
 		if (tagRef == null) {
 			throw new MojoExecutionException("The release " + getVersion() + " was never finished, please execute finish-release goal before!");
 		}
 
 		// Realiza o merge da tag para o master (using theirs)
-		gitFlow.checkoutBranch(MASTER);
+		getGitFlow().checkoutBranch(getGitFlow().getGitFlowPattern().getMasterName());
 
 		MergeGitFlow mergeGitFlow = new MergeGitFlow();
-		mergeGitFlow.setBranchName(MASTER);
+		mergeGitFlow.setBranchName(getGitFlow().getGitFlowPattern().getMasterName());
 		mergeGitFlow.setErrorMessage("publish-release -Dversion=" + getVersion());
 		mergeGitFlow.setTargetRef(tagRef);
+		mergeGitFlow.addIgnoringFiles(getGitFlow().getGitFlowPattern().getPomFileName());
 
 		/**
 		 * TODO
@@ -49,29 +49,29 @@ public class PublishReleaseMojo extends AbstractGitFlowMojo {
 		 * durante o periodo de homologacao de uma release?
 		 * Solucao: replicar as correcoes de hotfix para a versao que esta em homologacao
 		 */
-		gitFlow.merge(mergeGitFlow, MergeStrategy.THEIRS);
+		getGitFlow().merge(mergeGitFlow, MergeStrategy.THEIRS);
 		compileProject();
-		gitFlow.push();
+		getGitFlow().push();
 
 		// Remove os branches de feature, bugfix e o branch da release
-		gitFlow.deleteRemoteBranch(getVersion(), BranchType.feature);
-		gitFlow.deleteRemoteBranch(getVersion(), BranchType.bugfix);
-		gitFlow.deleteRemoteBranch(BranchUtil.buildReleaseBranchName(getVersion()));
+		getGitFlow().deleteRemoteBranch(getVersion(), DefaultBranchType.feature);
+		getGitFlow().deleteRemoteBranch(getVersion(), DefaultBranchType.bugfix);
+		getGitFlow().deleteRemoteBranch(getGitFlow().buildReleaseBranchName(getVersion()));
 	}
 
 
-	private void validadeBefore(GitFlow gitFlow) throws Exception {
-		gitFlow.validadePatternReleaseVersion(getVersion());
+	private void validadeBefore() throws Exception {
+		getGitFlow().validadePatternReleaseVersion(getVersion());
 	}
 
 
 	@Override
-	public void rollback(GitFlow gitFlow, Exception e) throws MojoExecutionException {
+	public void rollback(Exception e) throws MojoExecutionException {
 		try {
 			getLog().error(e.getMessage());
 			getLog().info("Rolling back all changes");
-			gitFlow.reset(MASTER);
-			gitFlow.checkoutBranchForced(MASTER);
+			getGitFlow().reset(getGitFlow().getGitFlowPattern().getMasterName());
+			getGitFlow().checkoutBranchForced(getGitFlow().getGitFlowPattern().getMasterName());
 		} catch (Exception e1) {;}
 		throw new MojoExecutionException("ERROR", e);
 	}
