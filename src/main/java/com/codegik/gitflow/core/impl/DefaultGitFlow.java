@@ -32,7 +32,7 @@ public class DefaultGitFlow extends GitFlow {
 
 
 	public void validadePatternReleaseVersion(String version) throws Exception {
-		if (!getGitFlowPattern().getReleaseVersionPattern().matcher(version).find()) {
+		if (!getGitFlowPattern().getReleaseVersionPattern().matcher(version).matches()) {
 			throw new MojoExecutionException("The version pattern is " + getGitFlowPattern().getReleaseVersionPattern().toString() + "  EX: 1.3");
 		}
 	}
@@ -89,7 +89,7 @@ public class DefaultGitFlow extends GitFlow {
 		// Filtra a lista de tags pelo padrao de nomenclatura
 		index = 0;
 		while (index < tags.size()) {
-			if (!getGitFlowPattern().getTagVersionPattern().matcher(getVersionFromTag(tags.get(index))).find()) {
+			if (!getGitFlowPattern().getTagVersionPattern().matcher(getVersionFromTag(tags.get(index))).matches()) {
 				tags.remove(index);
 				continue;
 			}
@@ -125,7 +125,7 @@ public class DefaultGitFlow extends GitFlow {
 	public String increaseVersion(String version) throws Exception {
 		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(version);
 
-		if (matcher.find()) {
+		if (matcher.matches()) {
 			Integer increment = new Integer(matcher.group(3));
 			increment++;
 			return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), increment.toString());
@@ -157,7 +157,7 @@ public class DefaultGitFlow extends GitFlow {
 	public String increaseVersionBasedOnTag(String version) throws Exception {
 		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(version);
 
-		if (matcher.find()) {
+		if (matcher.matches()) {
 			String releaseVersion 	= String.format("%s.%s", matcher.group(1), matcher.group(2));
 			Ref lastTag 			= findLastTag(releaseVersion);
 			String newVersion 		= null;
@@ -168,7 +168,7 @@ public class DefaultGitFlow extends GitFlow {
 			} else {
 				newVersion 	= getVersionFromTag(lastTag);
 				matcher 	= getGitFlowPattern().getTagVersionPattern().matcher(newVersion);
-				newVersion 	= matcher.find() ? matcher.group(3) : null;
+				newVersion 	= matcher.matches() ? matcher.group(3) : null;
 			}
 
 			increment = new Integer(newVersion);
@@ -205,26 +205,40 @@ public class DefaultGitFlow extends GitFlow {
 	public Boolean isReleaseSmallerThanCurrentVersion(String releaseBranchVersion, String currentVersion) throws Exception {
 		getLog().info("Is release smaller than currentVersion " + releaseBranchVersion + " -> " + currentVersion + "?");
 
-		Matcher matcherCurrentVersion 		= getGitFlowPattern().getTagVersionPattern().matcher(currentVersion);
 		Matcher matcherReleaseBranchVersion = getGitFlowPattern().getReleaseVersionPattern().matcher(releaseBranchVersion);
+		Matcher matcherCurrentVersion 		= getGitFlowPattern().getTagVersionPattern().matcher(currentVersion);
 
-		if (!matcherCurrentVersion.find()) {
+		if (!matcherCurrentVersion.matches()) {
 			throw new MojoExecutionException("The currentVersion " + currentVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
-		if (!matcherReleaseBranchVersion.find()) {
+		if (!matcherReleaseBranchVersion.matches()) {
 			throw new MojoExecutionException("The releaseBranchVersion " + releaseBranchVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
-
-		Integer currVersion 	= new Integer(matcherCurrentVersion.group(1));
-		Integer releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(1));
 		
-		if (releaseVersion == currVersion) {
-			currVersion 	= new Integer(matcherCurrentVersion.group(2));
-			releaseVersion 	= new Integer(matcherReleaseBranchVersion.group(2));
+		return compareVersions(matcherReleaseBranchVersion, matcherCurrentVersion) == -1;
+	}
+	
+	
+	private Integer compareVersions(Matcher version1, Matcher version2) throws MojoExecutionException {
+		int maxGroup = version1.groupCount() < version2.groupCount() ? version1.groupCount() : version2.groupCount();
+		
+		for (int i = 1; i <= maxGroup; i++) {
+			int intVersion1	= new Integer(version1.group(i));
+			int intVersion2	= new Integer(version2.group(i));
+			
+			if (intVersion1 == intVersion2) {
+				continue;
+			}
+			
+			if (intVersion1 < intVersion2) {
+				return -1; // the version1 is smaller than version2
+			}
+			
+			return 1; // the version1 is greater than version2
 		}
-
-		return releaseVersion <= currVersion;
+		
+		return 0; // the version1 is iqual to version2
 	}
 
 
@@ -245,11 +259,11 @@ public class DefaultGitFlow extends GitFlow {
 		Matcher matcherFirstVersion 	= getGitFlowPattern().getTagVersionPattern().matcher(firstVersion);
 		Matcher matcherSecondVersion 	= getGitFlowPattern().getTagVersionPattern().matcher(secondVersion);
 
-		if (!matcherFirstVersion.find()) {
+		if (!matcherFirstVersion.matches()) {
 			throw new MojoExecutionException("The firstVersion " + firstVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 
-		if (!matcherSecondVersion.find()) {
+		if (!matcherSecondVersion.matches()) {
 			throw new MojoExecutionException("The secondVersion " + secondVersion + " does not match with pattern " + getGitFlowPattern().getTagVersionPattern().toString());
 		}
 

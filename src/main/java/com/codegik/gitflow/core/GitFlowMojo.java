@@ -3,6 +3,7 @@ package com.codegik.gitflow.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -23,7 +24,10 @@ public abstract class GitFlowMojo extends AbstractMojo {
 
     @Parameter( defaultValue = "${settings}", readonly = true )
     private Settings settings;
-
+    
+    @Parameter( defaultValue = "${session}", readonly = true, required = true )
+    private MavenSession session;
+    
     @Parameter( property = "skipTests" )
     private Boolean skipTests;
 
@@ -63,7 +67,11 @@ public abstract class GitFlowMojo extends AbstractMojo {
 		if (Boolean.TRUE.equals(getSkipTests())) {
 			args.add("-DskipTests");
 		}
-
+        
+        if (Boolean.TRUE.equals(getSettings().isOffline())) {
+			args.add("-o");
+		}
+		
 		if (getSettings().getActiveProfiles() != null && getSettings().getActiveProfiles().size() > 0) {
 			args.add("-P");
 			args.add(StringUtils.join(getSettings().getActiveProfiles().iterator(), ","));
@@ -104,6 +112,10 @@ public abstract class GitFlowMojo extends AbstractMojo {
 
 	public void setMvnExecutor(CommandExecutor mvnExecutor) {
 		this.mvnExecutor = mvnExecutor;
+	}
+
+	public MavenSession getSession() {
+		return session;
 	}
 
 }

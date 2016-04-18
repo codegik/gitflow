@@ -303,7 +303,7 @@ public abstract class GitFlow {
 	public String getReleaseFromVersion(String fullVersion) {
 		Matcher matcher = getGitFlowPattern().getTagVersionPattern().matcher(fullVersion);
 
-		if (matcher.find()) {
+		if (matcher.matches()) {
 			return String.format("%s.%s", matcher.group(1), matcher.group(2));
 		}
 
